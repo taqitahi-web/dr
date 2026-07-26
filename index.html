@@ -1,0 +1,2317 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>ডেইলি ওয়ার্ক রিপোর্ট ও কেপিআই — EPFBD</title>
+<link rel="preconnect" href="https://fonts.googleapis.com">
+<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+<script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
+<style>
+:root{
+  --navy:#0f2540;
+  --navy-2:#173a5e;
+  --steel:#1d4e6b;
+  --amber:#f2a63a;
+  --amber-dark:#c9821e;
+  --teal:#1f9d73;
+  --red:#d5493a;
+  --bg:#f4f6f5;
+  --card:#ffffff;
+  --line:#e1e6e2;
+  --ink:#16232e;
+  --ink-soft:#5b6b73;
+  --mono:'JetBrains Mono',monospace;
+}
+*{box-sizing:border-box;}
+html,body{margin:0;padding:0;}
+body{
+  font-family:'Hind Siliguri',sans-serif;
+  background:var(--bg);
+  color:var(--ink);
+  min-height:100vh;
+}
+button,select,input,textarea{font-family:inherit;}
+
+/* ---------- layout ---------- */
+.app{display:flex;min-height:100vh;}
+.sidebar{
+  width:230px;flex-shrink:0;
+  background:linear-gradient(180deg,var(--navy) 0%,var(--navy-2) 100%);
+  color:#dce8ef;display:flex;flex-direction:column;
+  position:sticky;top:0;height:100vh;
+}
+.brand{
+  padding:22px 20px 16px;border-bottom:1px solid rgba(255,255,255,.1);
+}
+.brand .tag{
+  font-family:var(--mono);font-size:11px;letter-spacing:2px;color:var(--amber);
+  text-transform:uppercase;
+}
+.brand h1{font-size:17px;margin:6px 0 2px;font-weight:700;line-height:1.35;}
+.brand .sub{font-size:12px;color:#9db4c2;}
+.nav{padding:14px 10px;flex:1;overflow-y:auto;}
+.nav button{
+  display:flex;align-items:center;gap:10px;width:100%;text-align:right;
+  background:transparent;border:none;color:#c7d8e2;padding:11px 14px;
+  border-radius:8px;cursor:pointer;font-size:14.5px;margin-bottom:4px;
+  transition:.15s;justify-content:flex-start;flex-direction:row-reverse;
+}
+.nav button:hover{background:rgba(255,255,255,.07);}
+.nav button.active{background:var(--amber);color:#26190a;font-weight:600;}
+.nav .icon{font-family:var(--mono);font-size:13px;opacity:.8;width:20px;text-align:center;}
+.side-foot{padding:14px 18px;font-size:11px;color:#7d94a2;border-top:1px solid rgba(255,255,255,.08);font-family:var(--mono);}
+
+.main{flex:1;min-width:0;padding:26px 30px 60px;}
+.topbar{
+  display:flex;justify-content:space-between;align-items:center;margin-bottom:20px;
+  flex-wrap:wrap;gap:12px;
+}
+.topbar h2{margin:0;font-size:21px;}
+.topbar .meta{font-family:var(--mono);font-size:12px;color:var(--ink-soft);}
+
+.card{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;
+  padding:18px 20px;margin-bottom:18px;
+}
+.card h3{
+  margin:0 0 14px;font-size:15px;display:flex;align-items:center;gap:8px;
+  color:var(--navy);
+}
+.card h3 .num{
+  font-family:var(--mono);background:var(--navy);color:#fff;font-size:11px;
+  width:20px;height:20px;border-radius:5px;display:inline-flex;align-items:center;
+  justify-content:center;
+}
+
+/* ---------- dashboard kpi cards ---------- */
+.kpi-grid{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px;margin-bottom:18px;}
+.kpi-card{
+  background:var(--card);border:1px solid var(--line);border-radius:12px;padding:16px 18px;
+  border-top:3px solid var(--amber);
+}
+.kpi-card .lbl{font-size:12.5px;color:var(--ink-soft);margin-bottom:6px;}
+.kpi-card .val{font-family:var(--mono);font-size:26px;font-weight:700;color:var(--navy);}
+.kpi-card .sub{font-size:11.5px;color:var(--ink-soft);margin-top:3px;}
+.kpi-card.warn{border-top-color:var(--red);}
+.kpi-card.ok{border-top-color:var(--teal);}
+
+.chart-row{display:grid;grid-template-columns:1.3fr 1fr;gap:16px;}
+@media(max-width:900px){.chart-row{grid-template-columns:1fr;}}
+
+/* ---------- forms/tables ---------- */
+.form-row{display:flex;gap:14px;flex-wrap:wrap;margin-bottom:6px;}
+.field{display:flex;flex-direction:column;gap:5px;}
+.field label{font-size:12px;color:var(--ink-soft);}
+.field input,.field select{
+  padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;
+  background:#fbfcfb;min-width:150px;
+}
+.field input:focus,.field select:focus,textarea:focus{outline:2px solid var(--amber);outline-offset:0;}
+
+table{width:100%;border-collapse:collapse;font-size:13.5px;}
+th{
+  background:#eef2f0;color:var(--navy);text-align:right;padding:9px 8px;
+  font-size:12.5px;border-bottom:2px solid var(--line);white-space:nowrap;
+}
+td{padding:7px 8px;border-bottom:1px solid var(--line);vertical-align:middle;}
+tr:hover td{background:#fafbfa;}
+.tbl-wrap{overflow-x:auto;}
+input.cell,select.cell{
+  width:100%;border:1px solid transparent;background:transparent;padding:5px 6px;
+  border-radius:5px;font-size:13.5px;text-align:right;
+}
+input.cell:hover,select.cell:hover{border-color:var(--line);}
+input.cell:focus,select.cell:focus{border-color:var(--amber);background:#fff;outline:none;}
+input.cell[type=number]{text-align:center;}
+
+.btn{
+  border:none;border-radius:8px;padding:9px 16px;font-size:13.5px;cursor:pointer;
+  font-weight:600;transition:.15s;display:inline-flex;align-items:center;gap:6px;
+}
+.btn-amber{background:var(--amber);color:#26190a;}
+.btn-amber:hover{background:var(--amber-dark);}
+.btn-navy{background:var(--navy);color:#fff;}
+.btn-navy:hover{background:var(--navy-2);}
+.btn-ghost{background:transparent;color:var(--navy);border:1px solid var(--line);}
+.btn-ghost:hover{background:#eef2f0;}
+.btn-danger{background:#fdeceb;color:var(--red);}
+.btn-danger:hover{background:#f9d8d5;}
+.btn-sm{padding:5px 10px;font-size:12px;border-radius:6px;}
+
+.stamp{
+  display:inline-block;font-family:var(--mono);font-size:11px;font-weight:700;
+  padding:3px 10px;border-radius:5px;border:1.5px solid currentColor;letter-spacing:.5px;
+  transform:rotate(-2deg);
+}
+.stamp.excellent{color:var(--teal);}
+.stamp.good{color:#2f7db0;}
+.stamp.average{color:var(--amber-dark);}
+.stamp.poor{color:var(--red);}
+
+.section-label{
+  font-family:var(--mono);font-size:11px;letter-spacing:1.5px;color:var(--amber-dark);
+  text-transform:uppercase;margin:26px 0 8px;font-weight:700;
+}
+.hint{font-size:12px;color:var(--ink-soft);margin-top:2px;}
+.badge{
+  font-family:var(--mono);font-size:11px;padding:2px 8px;border-radius:20px;font-weight:600;
+}
+.badge.done{background:#e4f5ee;color:var(--teal);}
+.badge.pending{background:#fdeceb;color:var(--red);}
+.toolbar{display:flex;gap:10px;flex-wrap:wrap;align-items:center;margin-bottom:14px;}
+.footer-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;}
+.empty{
+  text-align:center;padding:34px 10px;color:var(--ink-soft);font-size:13.5px;
+  border:1.5px dashed var(--line);border-radius:10px;
+}
+.toast{
+  position:fixed;bottom:24px;left:50%;transform:translateX(-50%);
+  background:var(--navy);color:#fff;padding:11px 22px;border-radius:30px;font-size:13.5px;
+  box-shadow:0 8px 24px rgba(0,0,0,.2);z-index:999;opacity:0;pointer-events:none;transition:.25s;
+}
+.toast.show{opacity:1;transform:translateX(-50%) translateY(-6px);}
+.pill-group{display:flex;gap:6px;flex-wrap:wrap;}
+.pill{
+  padding:5px 12px;border-radius:20px;border:1px solid var(--line);font-size:12.5px;cursor:pointer;
+  background:#fff;
+}
+.pill.active{background:var(--navy);color:#fff;border-color:var(--navy);}
+.grid-2{display:grid;grid-template-columns:1fr 1fr;gap:16px;}
+
+/* ---------- mobile top bar + drawer ---------- */
+.mobile-topbar{display:none;}
+.drawer-backdrop{display:none;}
+@media(max-width:800px){
+  .grid-2{grid-template-columns:1fr;}
+  .app{flex-direction:column;}
+  .mobile-topbar{
+    display:flex;align-items:center;justify-content:space-between;gap:10px;
+    position:sticky;top:0;z-index:60;background:var(--navy);color:#fff;
+    padding:12px 14px;
+  }
+  .mobile-topbar .mt-title{font-size:14.5px;font-weight:700;}
+  .mobile-topbar .mt-menu{
+    background:var(--amber);color:#26190a;border:none;border-radius:8px;
+    padding:8px 12px;font-size:15px;font-weight:700;cursor:pointer;
+  }
+  .sidebar{
+    position:fixed;top:0;right:0;height:100vh;z-index:80;
+    transform:translateX(100%);transition:transform .22s ease;
+    box-shadow:-8px 0 24px rgba(0,0,0,.25);
+  }
+  .sidebar.open{transform:translateX(0);}
+  .drawer-backdrop.open{
+    display:block;position:fixed;inset:0;background:rgba(0,0,0,.4);z-index:70;
+  }
+  .main{padding:16px 14px 60px;}
+}
+.mono{font-family:var(--mono);}
+.small{font-size:12px;color:var(--ink-soft);}
+a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size:12.5px;}
+.icon-btn{background:transparent;border:none;cursor:pointer;font-size:14px;padding:3px 6px;border-radius:5px;}
+.icon-btn:hover{background:#eef2f0;}
+
+/* ---------- save confirmation modal ---------- */
+.modal-backdrop{
+  display:none;position:fixed;inset:0;background:rgba(15,37,64,.55);z-index:200;
+  align-items:center;justify-content:center;padding:16px;
+}
+.modal-backdrop.open{display:flex;}
+.modal-box{
+  background:#fff;border-radius:14px;padding:22px 22px 18px;max-width:380px;width:100%;
+  box-shadow:0 20px 50px rgba(0,0,0,.3);
+}
+.modal-box h3{margin:0 0 6px;color:var(--navy);font-size:16.5px;}
+.modal-box .modal-sub{font-size:12.5px;color:var(--ink-soft);margin-bottom:14px;}
+.modal-summary{
+  background:#f6f7f5;border:1px solid var(--line);border-radius:9px;padding:10px 12px;
+  font-size:13px;line-height:1.9;margin-bottom:14px;
+}
+.modal-summary b{color:var(--navy);}
+.modal-box label{font-size:12.5px;color:var(--ink-soft);display:block;margin-bottom:5px;}
+.modal-box input[type=password]{
+  width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:15px;
+  letter-spacing:1px;
+}
+.modal-box input[type=password]:focus{outline:none;border-color:var(--amber);}
+.modal-error{color:var(--red);font-size:12.5px;margin-top:7px;min-height:16px;}
+.modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;}
+
+/* ---------- print / PDF export ---------- */
+#printHeader{display:none;}
+@media print{
+  body{background:#fff;}
+  .sidebar, .mobile-topbar, .drawer-backdrop, .toolbar, .footer-actions,
+  .modal-backdrop, .toast, #entryPrintBtn, #histPrintBtn, #monthPrintBtn,
+  .nav, .icon-btn, button{ display:none !important; }
+  .app{display:block;}
+  .main{padding:0;}
+  #printHeader{
+    display:block;border-bottom:2px solid #0f2540;padding-bottom:10px;margin-bottom:16px;
+  }
+  #printHeader h2{margin:0 0 4px;color:#0f2540;font-size:18px;}
+  #printHeader #printHeaderMeta{font-family:var(--mono);font-size:12px;color:#444;}
+  .card{border:1px solid #ccc;box-shadow:none;break-inside:avoid;padding:12px 14px;margin-bottom:10px;}
+  input.cell, select.cell, textarea.cell{border:none !important;background:transparent !important;color:#000;}
+  .stamp{border-width:1px;transform:none;}
+  table{font-size:11.5px;}
+  th{background:#eee !important;-webkit-print-color-adjust:exact;print-color-adjust:exact;}
+}
+</style>
+</head>
+<body>
+
+<div class="mobile-topbar">
+  <span class="mt-title" data-bn="ডেইলি ওয়ার্ক রিপোর্ট ও কেপিআই" data-en="Daily Work Report &amp; KPI" data-zh="日常工作报告与KPI">ডেইলি ওয়ার্ক রিপোর্ট ও কেপিআই</span>
+  <div style="display:flex;gap:8px;align-items:center;">
+    <button class="mt-menu" id="langToggleBtnMobile">EN</button>
+    <button class="mt-menu" id="mobileMenuBtn">☰</button>
+  </div>
+</div>
+<div class="drawer-backdrop" id="drawerBackdrop"></div>
+<div id="printHeader">
+  <h2 id="printHeaderTitle">ডেইলি ওয়ার্ক রিপোর্ট ও কেপিআই</h2>
+  <div id="printHeaderMeta"></div>
+</div>
+
+<div class="app">
+  <!-- ================= SIDEBAR ================= -->
+  <div class="sidebar">
+    <div class="brand">
+      <div class="tag" style="display:flex;justify-content:space-between;align-items:center;">
+        <span>EPFBD · Factory Ops</span>
+        <button id="langToggleBtn" title="Change language / ভাষা পরিবর্তন" style="background:var(--amber);color:#26190a;border:none;border-radius:6px;padding:3px 9px;font-size:11px;font-weight:700;cursor:pointer;font-family:var(--mono);">EN</button>
+      </div>
+      <h1><span data-bn="ডেইলি ওয়ার্ক রিপোর্ট ও কেপিআই" data-en="Daily Work Report &amp; KPI" data-zh="日常工作报告与KPI">ডেইলি ওয়ার্ক রিপোর্ট ও কেপিআই</span></h1>
+      <div class="sub" id="sidebarUserLine" data-bn="সকল ডিপার্টমেন্ট" data-en="All Departments" data-zh="所有部门">সকল ডিপার্টমেন্ট</div>
+    </div>
+    <div class="nav" id="navList">
+      <button data-view="dashboard" class="active"><span class="icon">◆</span><span data-bn="ড্যাশবোর্ড" data-en="Dashboard" data-zh="仪表盘">ড্যাশবোর্ড</span></button>
+      <button data-view="entry"><span class="icon">✎</span><span data-bn="ডেইলি এন্ট্রি" data-en="Daily Entry" data-zh="每日录入">ডেইলি এন্ট্রি</span></button>
+      <button data-view="history"><span class="icon">≡</span><span data-bn="হিস্ট্রি" data-en="History" data-zh="历史记录">হিস্ট্রি</span></button>
+      <button data-view="monthly"><span class="icon">▦</span><span data-bn="মাসিক সামারি" data-en="Monthly Summary" data-zh="月度汇总">মাসিক সামারি</span></button>
+      <button data-view="employees"><span class="icon">☺</span><span data-bn="এমপ্লয়ি ও ডিপার্টমেন্ট" data-en="Employees &amp; Depts" data-zh="员工与部门">এমপ্লয়ি ও ডিপার্টমেন্ট</span></button>
+      <button data-view="notes"><span class="icon">🗒</span><span data-bn="নোট" data-en="Notes" data-zh="备注事项">নোট</span></button>
+      <button data-view="settings"><span class="icon">⚙</span><span data-bn="সেটিংস / ব্যাকআপ" data-en="Settings" data-zh="设置">সেটিংস / ব্যাকআপ</span></button>
+    </div>
+    <div class="side-foot">v1.0 · local-storage · offline-ready<br>Developed by M a s u d</div>
+  </div>
+
+  <!-- ================= MAIN ================= -->
+  <div class="main">
+
+    <!-- ---------- DASHBOARD ---------- -->
+    <div class="view" id="view-dashboard">
+      <div class="topbar">
+        <h2><span data-bn="ড্যাশবোর্ড" data-en="Dashboard" data-zh="仪表盘">ড্যাশবোর্ড</span></h2>
+        <div class="meta" id="dashDateLine"></div>
+      </div>
+
+      <div class="kpi-grid" id="dashCards"></div>
+
+      <div class="card">
+        <h3><span class="num">◇</span><span data-bn="ফ্যাক্টরি-ওয়াইজ উপস্থিতি (আজ)" data-en="Factory-wise Attendance (Today)" data-zh="各工厂出勤情况（今日）">ফ্যাক্টরি-ওয়াইজ উপস্থিতি (আজ)</span></h3>
+        <div class="kpi-grid" id="factoryAttCards"></div>
+      </div>
+
+      <div class="card">
+        <h3><span class="num">◆</span><span data-bn="মোট ম্যানপাওয়ার সামারি — ফ্যাক্টরি ওয়াইজ (এমপ্লয়ি মাস্টার লিস্ট অনুযায়ী)" data-en="Total Manpower Summary — Factory-wise (as per employee master list)" data-zh="总人力汇总 — 按工厂（依据员工主列表）">মোট ম্যানপাওয়ার সামারি — ফ্যাক্টরি ওয়াইজ (এমপ্লয়ি মাস্টার লিস্ট অনুযায়ী)</span></h3>
+        <div class="tbl-wrap"><table id="manpowerFactoryTable"></table></div>
+      </div>
+
+      <div class="chart-row">
+        <div class="card">
+          <h3><span class="num">1</span><span data-bn="গত ৭ দিনের উপস্থিতি ট্রেন্ড (ফ্যাক্টরি-ওয়াইজ)" data-en="Last 7 Days Attendance Trend (Factory-wise)" data-zh="近7天出勤趋势（按工厂）">গত ৭ দিনের উপস্থিতি ট্রেন্ড (ফ্যাক্টরি-ওয়াইজ)</span></h3>
+          <canvas id="attTrendChart" height="150"></canvas>
+        </div>
+        <div class="card">
+          <h3><span class="num">2</span><span data-bn="ডিপার্টমেন্ট অনুযায়ী গড় কেপিআই স্কোর" data-en="Average KPI Score by Department" data-zh="各部门平均KPI分数">ডিপার্টমেন্ট অনুযায়ী গড় কেপিআই স্কোর</span></h3>
+          <canvas id="kpiDeptChart" height="150"></canvas>
+        </div>
+      </div>
+
+      <div class="card">
+        <h3><span class="num">3</span><span data-bn="আজকের এন্ট্রি স্ট্যাটাস (ডিপার্টমেন্ট অনুযায়ী)" data-en="Today's Entry Status (by Department)" data-zh="今日录入状态（按部门）">আজকের এন্ট্রি স্ট্যাটাস (ডিপার্টমেন্ট অনুযায়ী)</span></h3>
+        <div class="tbl-wrap"><table id="todayStatusTable"></table></div>
+      </div>
+    </div>
+
+    <!-- ---------- DAILY ENTRY ---------- -->
+    <div class="view" id="view-entry" style="display:none;">
+      <div class="topbar">
+        <h2><span data-bn="ডেইলি এন্ট্রি" data-en="Daily Entry" data-zh="每日录入">ডেইলি এন্ট্রি</span></h2>
+        <div class="meta" data-bn="যে ডিপার্টমেন্ট সিলেক্ট করবেন, তার তথ্যই পূরণ/এডিট হবে" data-en="Data for the selected department only" data-zh="仅显示所选部门的数据">যে ডিপার্টমেন্ট সিলেক্ট করবেন, তার তথ্যই পূরণ/এডিট হবে</div>
+      </div>
+
+      <div class="card">
+        <div class="form-row">
+          <div class="field">
+            <label data-bn="তারিখ" data-en="Date" data-zh="日期">তারিখ</label>
+            <input type="date" id="entryDate">
+          </div>
+          <div class="field">
+            <label data-bn="ডিপার্টমেন্ট নির্বাচন করুন" data-en="Select Department" data-zh="选择部门">ডিপার্টমেন্ট নির্বাচন করুন</label>
+            <select id="entryDept" style="min-width:220px;"></select>
+          </div>
+          <div class="field">
+            <label data-bn="ফ্যাক্টরি" data-en="Factory" data-zh="工厂">ফ্যাক্টরি</label>
+            <input type="text" id="entryFactory" disabled style="min-width:110px;background:#eef2f0;">
+          </div>
+          <div class="field" style="justify-content:flex-end;">
+            <label>&nbsp;</label>
+            <button class="btn btn-ghost" id="loadEntryBtn"><span data-bn="লোড করুন" data-en="Load" data-zh="加载">লোড করুন</span></button>
+          </div>
+        </div>
+        <div class="hint" id="entryStatusHint"></div>
+      </div>
+
+      <div class="section-label"><span data-bn="১. অ্যাটেনডেন্স রিপোর্ট — ডিপার্টমেন্ট ওয়াইজ" data-en="1. Attendance Report — Department-wise" data-zh="1. 出勤报告 — 按部门">১. অ্যাটেনডেন্স রিপোর্ট — ডিপার্টমেন্ট ওয়াইজ</span></div>
+      <div class="card">
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" id="addAttRow">+ <span data-bn="কর্মী যোগ করুন" data-en="Add Employee" data-zh="添加员工">কর্মী যোগ করুন</span></button>
+          <button class="btn btn-ghost btn-sm" id="markAllPresentBtn">✓ <span data-bn="সবাইকে উপস্থিত মার্ক করুন" data-en="Mark All Present" data-zh="全部标记为出勤">সবাইকে উপস্থিত মার্ক করুন</span></button>
+          <span class="small" data-bn="উপস্থিত/ছুটি/অনুপস্থিত ও ওটি পূরণ করুন" data-en="Fill present/leave/absent &amp; OT" data-zh="填写出勤/请假/缺勤及加班">উপস্থিত/ছুটি/অনুপস্থিত ও ওটি পূরণ করুন</span>
+        </div>
+        <div class="tbl-wrap"><table id="attTable"></table></div>
+        <div class="hint" id="attSummaryLine" style="margin-top:10px;font-weight:600;color:var(--navy);"></div>
+      </div>
+
+      <div class="section-label"><span data-bn="২. টোটাল অ্যাটেনডেন্স রিপোর্ট — ফ্যাক্টরি ওয়াইজ (স্বয়ংক্রিয়ভাবে হিসাব)" data-en="2. Total Attendance Report — Factory-wise (Auto-calculated)" data-zh="2. 出勤总报告 — 按工厂（自动计算）">২. টোটাল অ্যাটেনডেন্স রিপোর্ট — ফ্যাক্টরি ওয়াইজ (স্বয়ংক্রিয়ভাবে হিসাব)</span></div>
+      <div class="card">
+        <div class="hint" style="margin-bottom:10px;" data-bn="এই তারিখে সেভ করা সব ডিপার্টমেন্টের এন্ট্রি থেকে ফ্যাক্টরি অনুযায়ী মোট হিসাব বের হয়" data-en="Totalled from all departments saved for this date" data-zh="汇总自当日所有已保存部门的数据">এই তারিখে সেভ করা সব ডিপার্টমেন্টের এন্ট্রি থেকে ফ্যাক্টরি অনুযায়ী মোট হিসাব বের হয়</div>
+        <div class="tbl-wrap"><table id="ftyAttTable"></table></div>
+      </div>
+
+      <div class="section-label"><span data-bn="৩. ডেইলি জব ও কেপিআই" data-en="3. Daily Job &amp; KPI" data-zh="3. 每日工作与KPI">৩. ডেইলি জব ও কেপিআই</span></div>
+      <div class="card">
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" id="addKpiRow">+ <span data-bn="ক্রাইটেরিয়া যোগ করুন" data-en="Add Criteria" data-zh="添加标准">ক্রাইটেরিয়া যোগ করুন</span></button>
+          <span class="small" data-bn="রেটিং দিন: চমৎকার(১০) · ভালো(৭) · মোটামুটি(৪) · দুর্বল(০)" data-en="Rate: Excellent(10) · Good(7) · Average(4) · Poor(0)" data-zh="评分：优秀(10) · 良好(7) · 一般(4) · 较差(0)">রেটিং দিন: চমৎকার(১০) · ভালো(৭) · মোটামুটি(৪) · দুর্বল(০)</span>
+        </div>
+        <div class="tbl-wrap"><table id="kpiTable"></table></div>
+        <div class="hint" id="kpiSummaryLine" style="margin-top:10px;font-weight:700;font-size:15px;"></div>
+      </div>
+
+      <div class="section-label"><span data-bn="৪. ডেইলি ডাটা এন্ট্রি" data-en="4. Daily Data Entry" data-zh="4. 每日数据录入">৪. ডেইলি ডাটা এন্ট্রি</span></div>
+      <div class="card">
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" id="addDataRow">+ <span data-bn="ক্যাটাগরি যোগ করুন" data-en="Add Category" data-zh="添加类别">ক্যাটাগরি যোগ করুন</span></button>
+        </div>
+        <div class="tbl-wrap"><table id="dataEntryTable"></table></div>
+      </div>
+
+      <div class="section-label"><span data-bn="৫. ফরকলিফট ম্যানেজমেন্ট" data-en="5. Forklift Management" data-zh="5. 叉车管理">৫. ফরকলিফট ম্যানেজমেন্ট</span></div>
+      <div class="card">
+        <div class="toolbar">
+          <button class="btn btn-ghost btn-sm" id="addForkRow">+ <span data-bn="ফরকলিফট এন্ট্রি যোগ করুন" data-en="Add Forklift Entry" data-zh="添加叉车记录">ফরকলিফট এন্ট্রি যোগ করুন</span></button>
+        </div>
+        <div class="tbl-wrap"><table id="forkTable"></table></div>
+      </div>
+
+      <div class="footer-actions">
+        <button class="btn btn-ghost" id="entryPrintBtn">🖨 <span data-bn="প্রিন্ট" data-en="Print" data-zh="打印">প্রিন্ট</span></button>
+        <button class="btn btn-ghost" id="clearEntryBtn"><span data-bn="রিসেট" data-en="Reset" data-zh="重置">রিসেট</span></button>
+        <button class="btn btn-amber" id="saveEntryBtn">✓ <span data-bn="সেভ করুন" data-en="Save" data-zh="保存">সেভ করুন</span></button>
+      </div>
+    </div>
+
+    <!-- ---------- HISTORY ---------- -->
+    <div class="view" id="view-history" style="display:none;">
+      <div class="topbar"><h2><span data-bn="হিস্ট্রি" data-en="History" data-zh="历史记录">হিস্ট্রি</span></h2></div>
+      <div class="card">
+        <div class="form-row">
+          <div class="field"><label data-bn="শুরুর তারিখ" data-en="From Date" data-zh="起始日期">শুরুর তারিখ</label><input type="date" id="histFrom"></div>
+          <div class="field"><label data-bn="শেষ তারিখ" data-en="To Date" data-zh="结束日期">শেষ তারিখ</label><input type="date" id="histTo"></div>
+          <div class="field">
+            <label data-bn="ডিপার্টমেন্ট" data-en="Department" data-zh="部门">ডিপার্টমেন্ট</label>
+            <select id="histDept"><option value="" data-bn="সব" data-en="All" data-zh="全部">সব</option></select>
+          </div>
+          <div class="field">
+            <label data-bn="সার্চ" data-en="Search" data-zh="搜索">সার্চ</label>
+            <input type="text" id="histSearchBox" data-bn="ডিপার্টমেন্ট কোড লিখুন..." data-en="Search dept code..." data-zh="搜索部门代码..." data-ph="1" placeholder="ডিপার্টমেন্ট কোড লিখুন...">
+          </div>
+          <div class="field" style="justify-content:flex-end;">
+            <label>&nbsp;</label>
+            <button class="btn btn-ghost" id="histFilterBtn"><span data-bn="ফিল্টার করুন" data-en="Filter" data-zh="筛选">ফিল্টার করুন</span></button>
+          </div>
+          <div class="field" style="justify-content:flex-end;">
+            <label>&nbsp;</label>
+            <button class="btn btn-ghost" id="histPrintBtn">🖨 <span data-bn="প্রিন্ট" data-en="Print" data-zh="打印">প্রিন্ট</span></button>
+          </div>
+        </div>
+      </div>
+      <div class="card">
+        <div class="tbl-wrap"><table id="histTable"></table></div>
+      </div>
+    </div>
+
+    <!-- ---------- MONTHLY SUMMARY ---------- -->
+    <div class="view" id="view-monthly" style="display:none;">
+      <div class="topbar"><h2><span data-bn="মাসিক সামারি" data-en="Monthly Summary" data-zh="月度汇总">মাসিক সামারি</span></h2></div>
+      <div class="card">
+        <div class="form-row">
+          <div class="field"><label data-bn="মাস নির্বাচন করুন" data-en="Select Month" data-zh="选择月份">মাস নির্বাচন করুন</label><input type="month" id="monthPicker"></div>
+          <div class="field" style="justify-content:flex-end;"><label>&nbsp;</label><button class="btn btn-ghost" id="monthGoBtn"><span data-bn="দেখুন" data-en="View" data-zh="查看">দেখুন</span></button></div>
+          <div class="field" style="justify-content:flex-end;"><label>&nbsp;</label><button class="btn btn-ghost" id="monthPrintBtn">🖨 <span data-bn="প্রিন্ট" data-en="Print" data-zh="打印">প্রিন্ট</span></button></div>
+        </div>
+      </div>
+      <div class="kpi-grid" id="monthCards"></div>
+      <div class="card">
+        <h3><span class="num">✓</span><span data-bn="ডিপার্টমেন্ট অনুযায়ী মাসিক পারফরম্যান্স" data-en="Monthly Performance by Department" data-zh="各部门月度表现">ডিপার্টমেন্ট অনুযায়ী মাসিক পারফরম্যান্স</span></h3>
+        <div class="tbl-wrap"><table id="monthDeptTable"></table></div>
+      </div>
+      <div class="card">
+        <h3><span class="num">✓</span><span data-bn="দৈনিক কেপিআই ট্রেন্ড (এই মাস)" data-en="Daily KPI Trend (This Month)" data-zh="每日KPI趋势（本月）">দৈনিক কেপিআই ট্রেন্ড (এই মাস)</span></h3>
+        <canvas id="monthTrendChart" height="120"></canvas>
+      </div>
+    </div>
+
+    <!-- ---------- EMPLOYEES / DEPTS ---------- -->
+    <div class="view" id="view-employees" style="display:none;">
+      <div class="topbar"><h2><span data-bn="এমপ্লয়ি ও ডিপার্টমেন্ট মাস্টার" data-en="Employees &amp; Departments" data-zh="员工与部门">এমপ্লয়ি ও ডিপার্টমেন্ট মাস্টার</span></h2></div>
+
+      <div class="card">
+        <h3><span class="num">1</span><span data-bn="ডিপার্টমেন্ট লিস্ট (ফ্যাক্টরি অ্যাসাইনসহ)" data-en="Department List (with Factory Assignment)" data-zh="部门列表（含工厂分配）">ডিপার্টমেন্ট লিস্ট (ফ্যাক্টরি অ্যাসাইনসহ)</span></h3>
+        <div class="toolbar"><button class="btn btn-ghost btn-sm" id="addDeptBtn">+ <span data-bn="নতুন ডিপার্টমেন্ট" data-en="New Department" data-zh="新增部门">নতুন ডিপার্টমেন্ট</span></button></div>
+        <div class="tbl-wrap"><table id="deptTable"></table></div>
+      </div>
+
+      <div class="card">
+        <h3><span class="num">2</span><span data-bn="এমপ্লয়ি মাস্টার লিস্ট" data-en="Employee Master List" data-zh="员工主列表">এমপ্লয়ি মাস্টার লিস্ট</span></h3>
+        <div class="toolbar">
+          <select id="empDeptFilter" style="min-width:180px;"></select>
+          <input type="text" id="empSearchBox" data-bn="🔍 নাম বা আইডি দিয়ে সার্চ করুন..." data-en="🔍 Search by name or ID..." data-zh="🔍 按姓名或工号搜索..." data-ph="1" placeholder="🔍 নাম বা আইডি দিয়ে সার্চ করুন..." style="flex:1;min-width:180px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+          <button class="btn btn-ghost btn-sm" id="addEmpBtn">+ <span data-bn="নতুন এমপ্লয়ি" data-en="New Employee" data-zh="新增员工">নতুন এমপ্লয়ি</span></button>
+        </div>
+        <div class="kpi-grid" style="margin-bottom:14px;">
+          <div class="kpi-card"><div class="lbl" data-bn="মোট সংখ্যা" data-en="Total" data-zh="总计">মোট সংখ্যা</div><div class="val" id="empSumTotal">0</div></div>
+          <div class="kpi-card ok"><div class="lbl" data-bn="অফিসার সংখ্যা" data-en="Officer" data-zh="职员">অফিসার সংখ্যা</div><div class="val" id="empSumOfficer">0</div></div>
+          <div class="kpi-card"><div class="lbl" data-bn="লেবার সংখ্যা" data-en="Labour" data-zh="劳工">লেবার সংখ্যা</div><div class="val" id="empSumLabour">0</div></div>
+        </div>
+        <div class="tbl-wrap"><table id="empTable"></table></div>
+      </div>
+    </div>
+
+    <!-- ---------- NOTES ---------- -->
+    <div class="view" id="view-notes" style="display:none;">
+      <div class="topbar"><h2><span data-bn="নোট" data-en="Notes" data-zh="备注事项">নোট</span></h2></div>
+
+      <div class="pill-group" id="notesTabs" style="margin-bottom:16px;">
+        <button class="pill active" data-tab="events"><span data-bn="ঘটনা / প্রোগ্রাম লগ" data-en="Event / Program Log" data-zh="事件/活动日志">ঘটনা / প্রোগ্রাম লগ</span></button>
+        <button class="pill" data-tab="tasks"><span data-bn="ডেইলি টাস্ক ও দায়িত্ব" data-en="Daily Tasks &amp; Responsibility" data-zh="每日任务与职责">ডেইলি টাস্ক ও দায়িত্ব</span></button>
+        <button class="pill" data-tab="policies"><span data-bn="পলিসি ও নিয়মনীতি" data-en="Policies &amp; Rules" data-zh="政策与规章">পলিসি ও নিয়মনীতি</span></button>
+      </div>
+
+      <!-- EVENTS TAB -->
+      <div id="notesTab-events">
+        <div class="card">
+          <div class="toolbar">
+            <input type="text" id="eventSearchBox" data-bn="🔍 খুঁজুন..." data-en="🔍 Search..." data-zh="🔍 搜索..." data-ph="1" placeholder="🔍 খুঁজুন..." style="min-width:180px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+            <select id="eventTypeFilter" style="min-width:140px;"></select>
+            <button class="btn btn-ghost btn-sm" id="eventPrintBtn">🖨 <span data-bn="প্রিন্ট" data-en="Print" data-zh="打印">প্রিন্ট</span></button>
+            <button class="btn btn-amber btn-sm" id="addEventBtn">+ <span data-bn="নতুন ঘটনা যোগ করুন" data-en="Add Event" data-zh="添加事件">নতুন ঘটনা যোগ করুন</span></button>
+          </div>
+          <div class="tbl-wrap"><table id="eventsTable"></table></div>
+        </div>
+      </div>
+
+      <!-- TASKS TAB -->
+      <div id="notesTab-tasks" style="display:none;">
+        <div class="card">
+          <div class="toolbar">
+            <input type="text" id="taskSearchBox" data-bn="🔍 খুঁজুন..." data-en="🔍 Search..." data-zh="🔍 搜索..." data-ph="1" placeholder="🔍 খুঁজুন..." style="min-width:180px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+            <select id="taskStatusFilter" style="min-width:140px;"></select>
+            <button class="btn btn-ghost btn-sm" id="taskPrintBtn">🖨 <span data-bn="প্রিন্ট" data-en="Print" data-zh="打印">প্রিন্ট</span></button>
+            <button class="btn btn-amber btn-sm" id="addTaskBtn">+ <span data-bn="নতুন টাস্ক যোগ করুন" data-en="Add Task" data-zh="添加任务">নতুন টাস্ক যোগ করুন</span></button>
+          </div>
+          <div class="tbl-wrap"><table id="tasksTable"></table></div>
+        </div>
+      </div>
+
+      <!-- POLICIES TAB -->
+      <div id="notesTab-policies" style="display:none;">
+        <div class="card">
+          <div class="toolbar">
+            <input type="text" id="policySearchBox" data-bn="🔍 খুঁজুন..." data-en="🔍 Search..." data-zh="🔍 搜索..." data-ph="1" placeholder="🔍 খুঁজুন..." style="min-width:180px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+            <button class="btn btn-ghost btn-sm" id="policyPrintBtn">🖨 <span data-bn="প্রিন্ট" data-en="Print" data-zh="打印">প্রিন্ট</span></button>
+            <button class="btn btn-amber btn-sm" id="addPolicyBtn">+ <span data-bn="নতুন পলিসি যোগ করুন" data-en="Add Policy" data-zh="添加政策">নতুন পলিসি যোগ করুন</span></button>
+          </div>
+          <div id="policiesList"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- ---------- SETTINGS ---------- -->
+    <div class="view" id="view-settings" style="display:none;">
+      <div class="topbar"><h2><span data-bn="সেটিংস / ব্যাকআপ" data-en="Settings &amp; Backup" data-zh="设置与备份">সেটিংস / ব্যাকআপ</span></h2></div>
+      <div class="card">
+        <h3><span class="num">☁</span><span data-bn="Firebase সিঙ্ক (মাল্টি-ডিভাইস)" data-en="Firebase Sync (Multi-device)" data-zh="Firebase同步（多设备）">Firebase সিঙ্ক (মাল্টি-ডিভাইস)</span></h3>
+        <p class="small">
+          একবার সংযুক্ত করলে সব ডিপার্টমেন্ট লিডার নিজের ফোন/কম্পিউটার থেকে এন্ট্রি দিলেও একই ডাটাবেসে জমা হবে —
+          সবাই লাইভ একসাথে দেখতে পাবে। বিনামূল্যে Firebase প্রজেক্ট বানিয়ে (Realtime Database চালু করে) নিচের কনফিগ JSON-টা পেস্ট করুন।<br>
+          <span style="color:var(--ink-soft);">Once connected, every department leader's device syncs to the same live database.</span>
+        </p>
+        <div class="hint" id="fbStatusLine" style="margin-bottom:10px;font-weight:600;" data-bn="যাচাই করা হচ্ছে..." data-en="Checking..." data-zh="检查中...">যাচাই করা হচ্ছে...</div>
+        <div class="field" style="max-width:100%;margin-bottom:10px;">
+          <label>Firebase Config (JSON) — Firebase Console → Project settings → SDK setup and configuration থেকে কপি করুন</label>
+          <textarea id="fbConfigInput" rows="5" style="font-family:var(--mono);font-size:12.5px;padding:10px;border:1px solid var(--line);border-radius:8px;" placeholder='{"apiKey":"...","authDomain":"...","databaseURL":"https://xxxx.firebaseio.com","projectId":"...", ...}'></textarea>
+        </div>
+        <div class="toolbar">
+          <button class="btn btn-navy" id="fbConnectBtn"><span data-bn="সংযুক্ত করুন" data-en="Connect" data-zh="连接">সংযুক্ত করুন</span></button>
+          <button class="btn btn-ghost" id="fbDisconnectBtn"><span data-bn="সংযোগ বিচ্ছিন্ন করুন" data-en="Disconnect" data-zh="断开连接">সংযোগ বিচ্ছিন্ন করুন</span></button>
+        </div>
+      </div>
+      <div class="card">
+        <h3><span class="num">1</span><span data-bn="ডাটা ব্যাকআপ (Export / Import)" data-en="Data Backup (Export / Import)" data-zh="数据备份（导出 / 导入）">ডাটা ব্যাকআপ (Export / Import)</span></h3>
+        <p class="small" data-bn="সব ডাটা এই ব্রাউজারের localStorage-এ (এবং Firebase সংযুক্ত থাকলে সেখানেও) সেভ থাকে। নিয়মিত ব্যাকআপ নিয়ে রাখা ভালো — JSON ব্যাকআপে হুবহু ডাটা ফিরে আসে; Excel ফাইলে সব তথ্য শীট আকারে দেখা যায় (রিপোর্টের জন্য), এবং এই অ্যাপ থেকে এক্সপোর্ট করা Excel ফাইল আবার ইমপোর্টও করা যাবে।" data-en="All data is saved in this browser's localStorage (and Firebase, if connected). Regular backups are recommended — JSON restores data exactly; Excel shows everything as readable sheets (for reporting), and an Excel file exported from this app can also be re-imported." data-zh="所有数据均保存在此浏览器的本地存储中（如已连接则同时保存到Firebase）。建议定期备份 — JSON可精确还原数据；Excel将所有数据显示为可读表格（便于报告），且由本应用导出的Excel文件也可重新导入。">সব ডাটা এই ব্রাউজারের localStorage-এ (এবং Firebase সংযুক্ত থাকলে সেখানেও) সেভ থাকে। নিয়মিত ব্যাকআপ নিয়ে রাখা ভালো — JSON ব্যাকআপে হুবহু ডাটা ফিরে আসে; Excel ফাইলে সব তথ্য শীট আকারে দেখা যায় (রিপোর্টের জন্য), এবং এই অ্যাপ থেকে এক্সপোর্ট করা Excel ফাইল আবার ইমপোর্টও করা যাবে।</p>
+        <div class="toolbar">
+          <button class="btn btn-navy" id="exportBtn">⬇ JSON <span data-bn="এক্সপোর্ট করুন" data-en="Export" data-zh="导出">এক্সপোর্ট করুন</span></button>
+          <button class="btn btn-ghost" id="importBtnLabel">⬆ JSON <span data-bn="ইমপোর্ট করুন" data-en="Import" data-zh="导入">ইমপোর্ট করুন</span></button>
+          <input type="file" id="importFile" accept=".json" style="display:none;">
+          <button class="btn btn-navy" id="exportExcelBtn">⬇ Excel <span data-bn="এক্সপোর্ট করুন" data-en="Export" data-zh="导出">এক্সপোর্ট করুন</span></button>
+          <button class="btn btn-ghost" id="importExcelBtnLabel">⬆ Excel <span data-bn="ইমপোর্ট করুন" data-en="Import" data-zh="导入">ইমপোর্ট করুন</span></button>
+          <input type="file" id="importExcelFile" accept=".xlsx,.xls" style="display:none;">
+        </div>
+      </div>
+      <div class="card">
+        <h3><span class="num">2</span><span data-bn="কেপিআই ক্রাইটেরিয়া মাস্টার এডিট" data-en="Edit KPI Criteria" data-zh="编辑KPI标准">কেপিআই ক্রাইটেরিয়া মাস্টার এডিট</span></h3>
+        <p class="small">ডেইলি এন্ট্রি পেজে যে জব ক্রাইটেরিয়াগুলো দেখা যায়, তা এখান থেকে এডিট করা যাবে (ভবিষ্যতের এন্ট্রির জন্য প্রযোজ্য)।</p>
+        <div class="tbl-wrap"><table id="kpiMasterTable"></table></div>
+        <div class="toolbar" style="margin-top:10px;"><button class="btn btn-ghost btn-sm" id="addKpiMasterBtn">+ <span data-bn="নতুন ক্রাইটেরিয়া" data-en="Add Criteria" data-zh="添加标准">নতুন ক্রাইটেরিয়া</span></button></div>
+      </div>
+      <div class="card">
+        <h3><span class="num">3</span><span data-bn="সব ডাটা মুছে ফেলুন" data-en="Erase All Data" data-zh="清除所有数据">সব ডাটা মুছে ফেলুন</span></h3>
+        <p class="small" data-bn="সতর্কতা: এটি সব সেভ করা এন্ট্রি স্থায়ীভাবে মুছে দেবে।" data-en="Warning: this permanently deletes all saved entries." data-zh="警告：此操作将永久删除所有已保存的记录。">সতর্কতা: এটি সব সেভ করা এন্ট্রি স্থায়ীভাবে মুছে দেবে।</p>
+        <button class="btn btn-danger" id="wipeBtn"><span data-bn="সব ডাটা মুছুন" data-en="Erase All" data-zh="全部清除">সব ডাটা মুছুন</span></button>
+      </div>
+    </div>
+
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<div class="modal-backdrop" id="saveModalBackdrop">
+  <div class="modal-box">
+    <h3><span data-bn="সেভ নিশ্চিত করুন" data-en="Confirm Save" data-zh="确认保存">সেভ নিশ্চিত করুন</span></h3>
+    <div class="modal-sub" data-bn="এন্ট্রি সেভ করার আগে চেক করে নিন এবং ডিপার্টমেন্ট পাসওয়ার্ড দিন" data-en="Check the summary and enter the department password" data-zh="请检查摘要并输入部门密码">এন্ট্রি সেভ করার আগে চেক করে নিন এবং ডিপার্টমেন্ট পাসওয়ার্ড দিন</div>
+    <div class="modal-summary" id="saveModalSummary"></div>
+    <label><span data-bn="পাসওয়ার্ড (ডিপার্টমেন্টের নাম)" data-en="Password (department name)" data-zh="密码（部门名称）">পাসওয়ার্ড (ডিপার্টমেন্টের নাম)</span></label>
+    <input type="password" id="saveModalPassword" placeholder="যেমন: BDC110" autocomplete="off">
+    <div class="modal-error" id="saveModalError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="saveModalCancel"><span data-bn="বাতিল" data-en="Cancel" data-zh="取消">বাতিল</span></button>
+      <button class="btn btn-amber" id="saveModalConfirm">✓ <span data-bn="সেভ করুন" data-en="Save" data-zh="保存">সেভ করুন</span></button>
+    </div>
+  </div>
+</div>
+
+<script>
+/* ======================================================================
+   DAILY WORK REPORT & KPI — EPFBD
+   Single-file app. Data persisted in localStorage.
+   ====================================================================== */
+
+const LS = {
+  depts:'ewr_depts', employees:'ewr_employees', entries:'ewr_entries',
+  kpiMaster:'ewr_kpi_master', dataCatMaster:'ewr_data_cat_master',
+  events:'ewr_events', tasks:'ewr_tasks', policies:'ewr_policies'
+};
+
+function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
+function monthStr(dateStr){ return dateStr.slice(0,7); }
+function uid(){ return Math.random().toString(36).slice(2,9); }
+function load(key, fallback){ try{ const v=JSON.parse(localStorage.getItem(key)); return v===null||v===undefined? fallback : v; }catch(e){ return fallback; } }
+function save(key, val){ localStorage.setItem(key, JSON.stringify(val)); }
+
+/* ================= FIREBASE SYNC (optional, multi-device) ================= */
+const FB_CONFIG_KEY = 'ewr_firebase_config';
+const FB_PATHS = {
+  [LS.depts]:'depts', [LS.employees]:'employees', [LS.entries]:'entries',
+  [LS.kpiMaster]:'kpiMaster', [LS.dataCatMaster]:'dataCats',
+  [LS.events]:'events', [LS.tasks]:'tasks', [LS.policies]:'policies'
+};
+let fbApp = null, fbDb = null, fbReady = false;
+let __suppressFbEcho = false; // avoid re-broadcasting a change we just received
+
+function saveSync(key, val){
+  save(key, val);
+  if(fbDb && FB_PATHS[key] && !__suppressFbEcho){
+    fbDb.ref(FB_PATHS[key]).set(val === undefined ? null : val)
+      .catch(err=> console.error('Firebase sync error:', err));
+  }
+}
+
+function setFbStatus(text, ok){
+  const el = document.getElementById('fbStatusLine');
+  if(!el) return;
+  el.textContent = text;
+  el.style.color = ok===true ? 'var(--teal)' : ok===false ? 'var(--red)' : 'var(--ink-soft)';
+}
+
+function tryInitFirebase(){
+  const raw = localStorage.getItem(FB_CONFIG_KEY);
+  if(!raw){ setFbStatus('সংযুক্ত নয় — শুধু এই ডিভাইসে ডাটা সেভ হচ্ছে / Not connected — data saved on this device only', null); return; }
+  let cfg;
+  try{ cfg = JSON.parse(raw); }catch(e){ setFbStatus('Config JSON ঠিক নয় / Invalid config JSON', false); return; }
+  try{
+    fbApp = firebase.initializeApp(cfg);
+    fbDb = firebase.database();
+    fbReady = true;
+    setFbStatus('🔥 Firebase সংযুক্ত — লাইভ সিঙ্ক চালু আছে / Connected — live sync active', true);
+    initFirebaseListeners();
+  }catch(err){
+    console.error('Firebase init failed:', err);
+    setFbStatus('সংযোগ ব্যর্থ হয়েছে / Connection failed: '+err.message, false);
+  }
+}
+
+function initFirebaseListeners(){
+  if(!fbDb) return;
+  Object.entries(FB_PATHS).forEach(([lsKey, path])=>{
+    fbDb.ref(path).on('value', snap=>{
+      const val = snap.val();
+      if(val===null || val===undefined){
+        // nothing remote yet — seed it with whatever we currently have locally
+        const local = load(lsKey, path==='entries'?{}:[]);
+        fbDb.ref(path).set(local);
+        return;
+      }
+      __suppressFbEcho = true;
+      applyRemoteUpdate(lsKey, val);
+      __suppressFbEcho = false;
+    }, err=>{
+      console.error('Firebase listener error:', err);
+      setFbStatus('সংযোগ বিচ্ছিন্ন হয়েছে / Disconnected: '+err.message, false);
+    });
+  });
+}
+
+function applyRemoteUpdate(lsKey, val){
+  localStorage.setItem(lsKey, JSON.stringify(val));
+  if(lsKey===LS.depts) DEPTS = val;
+  else if(lsKey===LS.employees) EMPLOYEES = val;
+  else if(lsKey===LS.entries) ENTRIES = val;
+  else if(lsKey===LS.kpiMaster) KPI_MASTER = val;
+  else if(lsKey===LS.dataCatMaster) DATA_CATS = val;
+  else if(lsKey===LS.events) EVENTS = val;
+  else if(lsKey===LS.tasks) TASKS = val;
+  else if(lsKey===LS.policies) POLICIES = val;
+  // don't yank the entry form out from under someone mid-edit
+  const active = document.querySelector('.nav button.active');
+  if(active && active.dataset.view !== 'entry'){
+    showView(active.dataset.view);
+  }
+}
+function toast(msg){
+  const t_=document.getElementById('toast'); t_.textContent=msg; t_.classList.add('show');
+  clearTimeout(window.__toastTimer); window.__toastTimer=setTimeout(()=>t_.classList.remove('show'),2200);
+}
+
+/* ================= LANGUAGE TOGGLE (বাংলা ডিফল্ট / English / 中文) ================= */
+let currentLang = localStorage.getItem('ewr_lang') || 'bn'; // 'bn' default
+
+function t(bn, en, zh){
+  if(currentLang==='en') return en;
+  if(currentLang==='zh') return zh || en; // fall back to English if no Chinese given
+  return bn;
+}
+
+function applyStaticLanguage(){
+  document.documentElement.lang = currentLang;
+  document.querySelectorAll('[data-bn]').forEach(el=>{
+    let val;
+    if(currentLang==='en') val = el.dataset.en || el.dataset.bn;
+    else if(currentLang==='zh') val = el.dataset.zh || el.dataset.en || el.dataset.bn;
+    else val = el.dataset.bn;
+    if(el.hasAttribute('data-ph')){ el.setAttribute('placeholder', val); }
+    else { el.textContent = val; }
+  });
+  // language toggle button shows the language you'll switch TO next (বাং -> EN -> 中文 -> বাং)
+  const nextLabel = currentLang==='bn' ? 'EN' : (currentLang==='en' ? '中文' : 'বাং');
+  const btn = document.getElementById('langToggleBtn');
+  if(btn) btn.textContent = nextLabel;
+  const btnM = document.getElementById('langToggleBtnMobile');
+  if(btnM) btnM.textContent = nextLabel;
+}
+
+function setLanguage(lang){
+  currentLang = lang;
+  localStorage.setItem('ewr_lang', lang);
+  applyStaticLanguage();
+  // re-render whichever view is currently open so dynamic (JS-built) text updates too
+  const active = document.querySelector('.nav button.active');
+  if(active) showView(active.dataset.view);
+}
+function printCurrentView(title){
+  document.getElementById('printHeaderTitle').textContent = title;
+  const now = new Date().toLocaleString('bn-BD');
+  document.getElementById('printHeaderMeta').textContent = 'প্রিন্ট করা হয়েছে: '+now;
+  window.print();
+}
+
+/* ---------------- default master data (seeded from reference sheet) ---------------- */
+const DEFAULT_DEPTS = [
+ {code:'BDC110', factory:'EPF', label:'BDC110'},
+ {code:'BDC150', factory:'EPF', label:'BDC150'},
+ {code:'BDC170', factory:'EPF', label:'BDC170'},
+ {code:'BDC210', factory:'EPF', label:'BDC210'},
+ {code:'BDC310', factory:'EPF', label:'BDC310'},
+ {code:'BDC410', factory:'EPF', label:'BDC410'},
+ {code:'BDC515', factory:'EPF', label:'BDC515'},
+ {code:'BDC610A', factory:'EPF', label:'BDC610A'},
+ {code:'BDC610B', factory:'EPF', label:'BDC610B'},
+ {code:'BDC620', factory:'EPF', label:'BDC620'},
+ {code:'BDW110', factory:'EPF', label:'BDW110'},
+ {code:'BDW150', factory:'EPF', label:'BDW150'},
+ {code:'BDW170', factory:'EPF', label:'BDW170'},
+ {code:'BDW210', factory:'EPF', label:'BDW210'},
+ {code:'BDW310', factory:'EPF', label:'BDW310'},
+ {code:'BDW410', factory:'EPF', label:'BDW410'},
+ {code:'BDW515', factory:'EPF', label:'BDW515'},
+ {code:'BDW610', factory:'EPF', label:'BDW610'},
+ {code:'EPF Carton', factory:'EPF', label:'EPF Carton'},
+ {code:'EPF Construction', factory:'EPF', label:'EPF Construction'},
+ {code:'EPF Loading', factory:'EPF', label:'EPF Loading'},
+ {code:'EPF Unloading', factory:'EPF', label:'EPF Unloading'},
+ {code:'EPF WH Forklift', factory:'EPF', label:'EPF WH Forklift'},
+ {code:'GT-06', factory:'GTM', label:'GT-06'},
+ {code:'GT-08', factory:'GTM', label:'GT-08'},
+ {code:'General', factory:'EPF', label:'General'},
+ {code:'Load/ Unload', factory:'EPF', label:'Load/ Unload'},
+ {code:'RFL Unloading', factory:'RFL', label:'RFL Unloading'},
+ {code:'Sub Contact', factory:'EPF', label:'Sub Contact'},
+ {code:'TGL Construction', factory:'TGL', label:'TGL Construction'},
+ {code:'TGL Forklift driver', factory:'TGL', label:'TGL Forklift driver'},
+ {code:'Transfer Production', factory:'EPF', label:'Transfer Production'},
+];
+const FACTORIES = ['EPF','EC','TGL','BGL','GTM','RFL'];
+
+const DEFAULT_EMPLOYEES = [
+ {id:uid(),empId:30678,name:'Md. Abdullah-Al-Masud',designation:'(Officer) Manager',deptCode:'General'},
+ {id:uid(),empId:35105,name:'Salim Hosen',designation:'(Officer) NES Junior Executive',deptCode:'BDC210'},
+ {id:uid(),empId:35125,name:'Md. Abdul Halim Sarker',designation:'(Officer) Jr Executive',deptCode:'BDC210'},
+ {id:uid(),empId:30353,name:'Golam Rabbani',designation:'(Officer) Executive',deptCode:'BDC110'},
+ {id:uid(),empId:32668,name:'Md. Abdul Baten',designation:'(Officer) NES Junior Executive (Grade-I)',deptCode:'BDC110'},
+ {id:uid(),empId:33508,name:'Md. Abdul Malek',designation:'(Officer) (Officer) Executive',deptCode:'BDC110'},
+ {id:uid(),empId:33359,name:'Md. Fajlar Rahman',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:33317,name:'Sree. Dhaneswar Roy',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:33504,name:'Ripon Kazi',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:33506,name:'Sree. Hembabu',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:31947,name:'Md. Anisur Rahman',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:31944,name:'Md. Jiarul Islam',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:33408,name:'Sudendronath Roy',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:33325,name:'Md. Roni',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:34421,name:'Md. Azizul Houque',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:32375,name:'Md. Rofiqul Islam',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:34959,name:'Swapon Roy',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:30885,name:'Sobuj',designation:'Labour',deptCode:'BDC110'},
+ {id:uid(),empId:30355,name:'Md. Moshiur Rahman',designation:'(Officer) Executive',deptCode:'BDC150'},
+ {id:uid(),empId:33906,name:'Abdur Rahim',designation:'(Officer) Jr. Executive',deptCode:'BDC150'},
+ {id:uid(),empId:33244,name:'Md. Toffazzol',designation:'(Officer) Executive',deptCode:'BDC170'},
+ {id:uid(),empId:34713,name:'Dhiraj Chandra Roy',designation:'(Officer) Jr. Executive',deptCode:'BDC170'},
+ {id:uid(),empId:33557,name:'Sohel',designation:'Labour',deptCode:'BDC150'},
+ {id:uid(),empId:34414,name:'Sujon',designation:'Labour',deptCode:'BDC150'},
+ {id:uid(),empId:32159,name:'Sree. Roton',designation:'Labour',deptCode:'BDC150'},
+ {id:uid(),empId:33550,name:'Md. Dulal',designation:'Labour',deptCode:'BDC150'},
+ {id:uid(),empId:31515,name:'Gonopati',designation:'Labour',deptCode:'BDC150'},
+ {id:uid(),empId:34420,name:'Dhira kanto roy',designation:'Labour',deptCode:'BDC150'},
+ {id:uid(),empId:33567,name:'Forid',designation:'Labour',deptCode:'BDC170'},
+ {id:uid(),empId:31385,name:'Md. Rabbi',designation:'Labour',deptCode:'BDC170'},
+ {id:uid(),empId:31288,name:'Mst. Khaleda Akter',designation:'(Officer) Executive',deptCode:'BDC210'},
+ {id:uid(),empId:31503,name:'Md. Abdur Hakim',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:34861,name:'Atiqul Islam',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:34832,name:'Md. Kawsar Ali',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:34960,name:'Aynul Islam',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:34742,name:'Md. Saiful Isalm',designation:'(Officer) Jr. Executive',deptCode:'BDC210'},
+ {id:uid(),empId:33327,name:'Jibon Roy',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:33495,name:'Md. Jahangir Alom',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:33936,name:'Habib',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:32496,name:'Sree Chandon Ray',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:32907,name:'Jagodish Roy',designation:'(Officer) Executive',deptCode:'BDC210'},
+ {id:uid(),empId:33501,name:'Asadul',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:33590,name:'Bourn Mukharji',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:34228,name:'Md. Akibul islam',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:33699,name:'Niranjaon',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:33056,name:'Ratan Ali',designation:'(Officer) Sr. Executive',deptCode:'BDC210'},
+ {id:uid(),empId:32902,name:'Rubel',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:34321,name:'Monotosh Roy',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:84311,name:'Md. Hafizul Islam',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:92337,name:'Imran',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:32359,name:'Md. Emdadul Haque',designation:'(Officer) Executive',deptCode:'BDC210'},
+ {id:uid(),empId:34614,name:'Moynul Islam',designation:'(Officer) Ass.Jr.Executive',deptCode:'BDC210'},
+ {id:uid(),empId:32498,name:'Manik Roy',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:32541,name:'Md. Julfikar Ali',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:33507,name:'Md. Rasedul Haque',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:34734,name:'Ishtiaq Ahamed',designation:'(Officer) Jr. Executive',deptCode:'BDC210'},
+ {id:uid(),empId:32234,name:'Md. Ajharul Islam',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:32388,name:'Tarun Chandra Adhikari',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:33712,name:'Md. Rabbani',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:33889,name:'Md Sadekul Islam',designation:'Labour',deptCode:'BDC210'},
+ {id:uid(),empId:30569,name:'Md.Anarul Islam',designation:'(Officer) Executive',deptCode:'BDC310'},
+ {id:uid(),empId:31651,name:'Md.Anisur Rahman',designation:'(Officer) Executive',deptCode:'BDC310'},
+ {id:uid(),empId:34257,name:'Md.Rasidul Haque',designation:'(Officer) NES Junior Executive (Grade-II)',deptCode:'BDC310'},
+ {id:uid(),empId:34744,name:'Md. Firoj Sarker',designation:'(Officer) Jr. Executive',deptCode:'BDC310'},
+ {id:uid(),empId:31816,name:'Md. Jillur Rahman',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:34251,name:'Md.Mursalin',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:35015,name:'Biplob Roy',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:33293,name:'Sree Nabo krisno Ray',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:33494,name:'Sree Jayanto Ray',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:32904,name:'Md.Badal Islam',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:32203,name:'Sree Liton Chandro',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:33888,name:'Md.Rajib Islam',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:33413,name:'Md.Sohel Rana',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:33698,name:'Md.Mijanur Rahman',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:31156,name:'MD. Saiful Islam',designation:'Labour',deptCode:'BDC310'},
+ {id:uid(),empId:34499,name:'Md.Mozammel',designation:'(Officer) Jr. Executive',deptCode:'BDC410'},
+ {id:uid(),empId:34885,name:'Md. Mostofa Kamal',designation:'(Officer) NES Junior Executive',deptCode:'BDC410'},
+ {id:uid(),empId:35043,name:'Md. Tonmoy',designation:'(Officer) NES Junior Executive',deptCode:'BDC410'},
+ {id:uid(),empId:33701,name:'Md. Soriful Islam',designation:'Labour',deptCode:'BDC410'},
+ {id:uid(),empId:33548,name:'Polash Chandro Roy',designation:'Labour',deptCode:'BDC410'},
+ {id:uid(),empId:32778,name:'Md. Shahin Alom',designation:'Labour',deptCode:'BDC410'},
+ {id:uid(),empId:32048,name:'Md. Sirazul Islam',designation:'Labour',deptCode:'BDC410'},
+ {id:uid(),empId:33492,name:'Kazi Mister',designation:'Labour',deptCode:'BDC410'},
+ {id:uid(),empId:33491,name:'Piear Ali',designation:'Labour',deptCode:'BDC410'},
+ {id:uid(),empId:33549,name:'Ronjit',designation:'Labour',deptCode:'BDC410'},
+ {id:uid(),empId:34836,name:'Md. Azaharul Hoque',designation:'Labour',deptCode:'BDC410'},
+ {id:uid(),empId:30866,name:'MD. Mithun sarker',designation:'(Officer) Executive',deptCode:'BDC515'},
+ {id:uid(),empId:32283,name:'Sujon Roy',designation:'(Officer) NES Executive (Grade-III)',deptCode:'BDC515'},
+ {id:uid(),empId:33560,name:'Md. Hamidul Islam',designation:'Labour',deptCode:'BDC515'},
+ {id:uid(),empId:32391,name:'Md. Ziarul Islam',designation:'Labour',deptCode:'BDC515'},
+ {id:uid(),empId:31468,name:'Ujjal Biswas',designation:'Labour',deptCode:'BDC515'},
+ {id:uid(),empId:35066,name:'Mizanur Rahman',designation:'Labour',deptCode:'BDC515'},
+ {id:uid(),empId:30894,name:'Md. Javed Hossain',designation:'(Officer) Executive',deptCode:'EPF Construction'},
+ {id:uid(),empId:33766,name:'Mahadeb Roy',designation:'Labour',deptCode:'EPF Construction'},
+ {id:uid(),empId:33423,name:'Md.Al faruque',designation:'(Officer) NES Junior Executive (Grade-II)',deptCode:'BDC610A'},
+ {id:uid(),empId:33636,name:'Liton ray',designation:'Labour',deptCode:'BDC610A'},
+ {id:uid(),empId:33555,name:'Md. Ripon',designation:'Labour',deptCode:'BDC610A'},
+ {id:uid(),empId:24156,name:'Md.Najrul',designation:'Labour',deptCode:'BDC610A'},
+ {id:uid(),empId:32440,name:'Paritosh roy',designation:'Labour',deptCode:'BDC610B'},
+ {id:uid(),empId:32497,name:'Asadul',designation:'Labour',deptCode:'BDC610B'},
+ {id:uid(),empId:32542,name:'Kajol Roy',designation:'Labour',deptCode:'BDC610B'},
+ {id:uid(),empId:31316,name:'SOHEL',designation:'Labour',deptCode:'BDC610B'},
+ {id:uid(),empId:34415,name:'Arif',designation:'Labour',deptCode:'BDC610B'},
+ {id:uid(),empId:33410,name:'Sonjoy Roy',designation:'Labour',deptCode:'BDC610B'},
+ {id:uid(),empId:34193,name:'Najmul Islam',designation:'(Officer) Executive',deptCode:'BDC620'},
+ {id:uid(),empId:33418,name:'Mrinal Roy',designation:'(Officer) Executive',deptCode:'BDC620'},
+ {id:uid(),empId:32766,name:'Md. Ahsan Habib',designation:'(Officer) NES Junior Executive (Grade-I)',deptCode:'BDC620'},
+ {id:uid(),empId:34440,name:'Mariam Akthar',designation:'(Officer) Jr. Executive',deptCode:'BDC620'},
+ {id:uid(),empId:34743,name:'Md. Maruf Alom',designation:'(Officer) Jr. Executive',deptCode:'BDC620'},
+ {id:uid(),empId:33151,name:'Merisina',designation:'(Officer) NES Junior Executive (Grade-I)',deptCode:'BDC620'},
+ {id:uid(),empId:35136,name:'Morsalin Hasan',designation:'(Officer) NES Junior Executive',deptCode:'BDC620'},
+ {id:uid(),empId:34434,name:'Mostakim',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:33290,name:'Nejam',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:33503,name:'Tohidul',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:33517,name:'Sunil',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:32277,name:'Nuwton',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:32453,name:'Milon',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:32698,name:'Aziz',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:34833,name:'Md. Nur Alom',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:33523,name:'Md. Jillur',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:33520,name:'Md. Khairul',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:32637,name:'Md. Anisur Rahman',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:34306,name:'Md Sadekul Islam',designation:'Labour',deptCode:'EPF Loading'},
+ {id:uid(),empId:33496,name:'Kabir',designation:'Labour',deptCode:'EPF Unloading'},
+ {id:uid(),empId:33887,name:'Jogonnath',designation:'Labour',deptCode:'EPF Unloading'},
+ {id:uid(),empId:33380,name:'Md. Asik Islam',designation:'Labour',deptCode:'EPF Unloading'},
+ {id:uid(),empId:33379,name:'Enamul',designation:'Labour',deptCode:'EPF Unloading'},
+ {id:uid(),empId:31364,name:'Mostofa',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:33289,name:'Robiul',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:31813,name:'Mahabub',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:32346,name:'Mosiar',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:33594,name:'Mostakin',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:32078,name:'Belal',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:33591,name:'Momenur',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:32825,name:'Hamidul',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:33645,name:'Alamin',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:34319,name:'Khadimul',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:33515,name:'Tojammel',designation:'Labour',deptCode:'Sub Contact'},
+ {id:uid(),empId:34545,name:'Apon Chandre Roy',designation:'(Officer) Jr. Executive',deptCode:'EPF WH Forklift'},
+ {id:uid(),empId:33376,name:'Md. Monowar Hossain',designation:'Driver',deptCode:'EPF WH Forklift'},
+ {id:uid(),empId:33219,name:'Manik Roy',designation:'Driver',deptCode:'EPF WH Forklift'},
+ {id:uid(),empId:33083,name:'Md. Sadak Alli',designation:'Driver',deptCode:'EPF WH Forklift'},
+ {id:uid(),empId:33886,name:'Ripon Roy',designation:'Driver',deptCode:'EPF WH Forklift'},
+ {id:uid(),empId:30877,name:'Md. Mominur',designation:'Driver',deptCode:'EPF WH Forklift'},
+ {id:uid(),empId:33362,name:'Md. Aminul Haque',designation:'Driver',deptCode:'EPF WH Forklift'},
+ {id:uid(),empId:33500,name:'Md. Saiful Islam',designation:'Driver',deptCode:'EPF WH Forklift'},
+ {id:uid(),empId:62208,name:'Satten Roy',designation:'Labour',deptCode:'RFL Unloading'},
+ {id:uid(),empId:62207,name:'Enamul Islam',designation:'Labour',deptCode:'RFL Unloading'},
+ {id:uid(),empId:65008,name:'Karuna Kanta roy',designation:'(Officer) Executive',deptCode:'EPF Carton'},
+ {id:uid(),empId:65097,name:'Nesarul Islam',designation:'Labour',deptCode:'EPF Carton'},
+ {id:uid(),empId:65060,name:'Ruhul Islam',designation:'Forklift driver',deptCode:'EPF Carton'},
+ {id:uid(),empId:65096,name:'Mukul Islam',designation:'Labour',deptCode:'Transfer Production'},
+ {id:uid(),empId:32028,name:'Md.Nurun Naby',designation:'(Officer) Executive (Grade-III)',deptCode:'BDW110'},
+ {id:uid(),empId:10066,name:'Mis.Zinnat Zahan',designation:'(Officer) Executive (Grade-III)',deptCode:'BDW110'},
+ {id:uid(),empId:51327,name:'Arshad Hossain',designation:'(Officer) Executive (Grade-III)',deptCode:'BDW110'},
+ {id:uid(),empId:32832,name:'Md. Foridul Islam',designation:'Labour',deptCode:'BDW110'},
+ {id:uid(),empId:51142,name:'Shree. Beraj Ray',designation:'Labour',deptCode:'BDW110'},
+ {id:uid(),empId:51143,name:'Md. Firoz Ahamad',designation:'Labour',deptCode:'BDW110'},
+ {id:uid(),empId:51145,name:'Shree. Kajol Ray',designation:'Labour',deptCode:'BDW110'},
+ {id:uid(),empId:51220,name:'Md. Mostafijur Rahaman',designation:'Labour',deptCode:'BDW110'},
+ {id:uid(),empId:51228,name:'Jadob Roy',designation:'Labour',deptCode:'BDW110'},
+ {id:uid(),empId:34133,name:'MD.Shamim Ahamed',designation:'(Officer) Jr. Executive',deptCode:'BDW150'},
+ {id:uid(),empId:51878,name:'Shafikul Islam',designation:'(Officer) Jr. Executive',deptCode:'BDW170'},
+ {id:uid(),empId:32585,name:'MD.Shamim Ahamed',designation:'(Officer) Executive (Grade-II)',deptCode:'BDW210'},
+ {id:uid(),empId:51674,name:'MD.Tosaddeque Hossain',designation:'(Officer) Jr. Executive',deptCode:'BDW210'},
+ {id:uid(),empId:51497,name:'MD.Sazzad Hossain',designation:'Labour',deptCode:'BDW210'},
+ {id:uid(),empId:10018,name:'Md.Joynal Abedin',designation:'Labour',deptCode:'BDW210'},
+ {id:uid(),empId:51494,name:'Md. Shoriful Islam',designation:'Labour',deptCode:'BDW210'},
+ {id:uid(),empId:52095,name:'Abdul.Halim',designation:'Labour',deptCode:'BDW210'},
+ {id:uid(),empId:51757,name:'Bulbul Ahamed',designation:'(Officer) Jr. Executive',deptCode:'BDW310'},
+ {id:uid(),empId:52148,name:'Sherajul Islam',designation:'(Officer) Jr. Executive',deptCode:'BDW310'},
+ {id:uid(),empId:52159,name:'Dhanonjoy Roy',designation:'(Officer) Jr. Executive',deptCode:'BDW310'},
+ {id:uid(),empId:32165,name:'Md. Abdul Kadar',designation:'Labour',deptCode:'BDW310'},
+ {id:uid(),empId:32386,name:'Sree. Dayaram',designation:'Labour',deptCode:'BDW310'},
+ {id:uid(),empId:32775,name:'Ratan Kumar Roy',designation:'Labour',deptCode:'BDW310'},
+ {id:uid(),empId:52099,name:'Khairul',designation:'Labour',deptCode:'BDW310'},
+ {id:uid(),empId:52088,name:'Md . Shahajul',designation:'Labour',deptCode:'BDW310'},
+ {id:uid(),empId:52150,name:'Hasanur',designation:'Labour',deptCode:'BDW310'},
+ {id:uid(),empId:52162,name:'Md. Mokter Islam',designation:'Labour',deptCode:'BDW310'},
+ {id:uid(),empId:52163,name:'Md. Kaosar',designation:'Labour',deptCode:'BDW310'},
+ {id:uid(),empId:31352,name:'Maksuda Begum',designation:'(Officer) Executive (Grade-II)',deptCode:'BDW410'},
+ {id:uid(),empId:51328,name:'Rion shah',designation:'(Officer) Jr. Executive',deptCode:'BDW410'},
+ {id:uid(),empId:51964,name:'Md. Azaharul Hoque',designation:'(Officer) Jr. Executive',deptCode:'BDW410'},
+ {id:uid(),empId:51133,name:'Jahid Hasan',designation:'Labour',deptCode:'BDW410'},
+ {id:uid(),empId:51330,name:'Mamun',designation:'Labour',deptCode:'BDW410'},
+ {id:uid(),empId:51065,name:'Md. Raihan -1',designation:'Labour',deptCode:'BDW410'},
+ {id:uid(),empId:32149,name:'Md. Mijar Rahaman',designation:'(Officer) Executive (Grade-I)',deptCode:'BDW515'},
+ {id:uid(),empId:51673,name:'Manik Chandro',designation:'(Officer) Jr. Executive',deptCode:'BDW515'},
+ {id:uid(),empId:52155,name:'Sazzad Hossan 2',designation:'Labour',deptCode:'BDW515'},
+ {id:uid(),empId:32837,name:'Md. Rahim',designation:'Labour',deptCode:'BDW515'},
+ {id:uid(),empId:51773,name:'Mizanur Rahman',designation:'Labour',deptCode:'BDW515'},
+ {id:uid(),empId:51096,name:'Ashamony',designation:'(Officer) Executive (Grade-III)',deptCode:'BDW610'},
+ {id:uid(),empId:51472,name:'Mukta Begum',designation:'(Officer) Jr. Executive',deptCode:'BDW610'},
+ {id:uid(),empId:51815,name:'Ramkrishna devsharma',designation:'(Officer) Jr. Executive',deptCode:'BDW610'},
+ {id:uid(),empId:51962,name:'Mahababur Rahman',designation:'(Officer) Ass.Jr.Executive',deptCode:'BDW610'},
+ {id:uid(),empId:51877,name:'Moynul Islam',designation:'(Officer) Jr. Executive',deptCode:'BDW610'},
+ {id:uid(),empId:32553,name:'Alokanto',designation:'Labour',deptCode:'BDW610'},
+ {id:uid(),empId:32884,name:'Sujon Chondro ray',designation:'Labour',deptCode:'BDW610'},
+ {id:uid(),empId:10041,name:'Abdur rahim',designation:'Labour',deptCode:'BDW610'},
+ {id:uid(),empId:51260,name:'Sudhan chondro roy',designation:'Labour',deptCode:'BDW610'},
+ {id:uid(),empId:51817,name:'Najmul islam',designation:'Labour',deptCode:'BDW610'},
+ {id:uid(),empId:51385,name:'Habib Rahman',designation:'Labour',deptCode:'BDW610'},
+ {id:uid(),empId:51002,name:'Dilip Chandro',designation:'Labour',deptCode:'BDW610'},
+ {id:uid(),empId:51843,name:'Krishno ray',designation:'(Officer) Jr. Executive',deptCode:'TGL Construction'},
+ {id:uid(),empId:51895,name:'Aklil ray',designation:'Labour',deptCode:'TGL Construction'},
+ {id:uid(),empId:51161,name:'Md. Maruf',designation:'(Officer) Executive (Grade-III)',deptCode:'Load/ Unload'},
+ {id:uid(),empId:10067,name:'Md. Imran',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:51219,name:'Harish chandro',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:51430,name:'Liton das',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:51498,name:'Liton ray',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:51495,name:'Majedur',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:51824,name:'Mizanur Rahman',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:52092,name:'Chittro Ranjon',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:52109,name:'Shuvo-Roy',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:32611,name:'Md.Monower',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:52161,name:'Md. Amzad Hossain',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:52087,name:'Md. Abdul Kaium',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:52230,name:'Dipto Sarker',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:52231,name:'Motiur Rahman',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:52232,name:'Nikunja Behary',designation:'Labour',deptCode:'Load/ Unload'},
+ {id:uid(),empId:51929,name:'Golam Rabbani',designation:'Forklift driver',deptCode:'TGL Forklift driver'},
+ {id:uid(),empId:51754,name:'Rajaul Haque',designation:'Forklift driver',deptCode:'TGL Forklift driver'},
+ {id:uid(),empId:32109,name:'Md. Ziyaur Rahman',designation:'Forklift driver',deptCode:'TGL Forklift driver'},
+ {id:uid(),empId:10022,name:'Md. Tuhin',designation:'Forklift driver',deptCode:'TGL Forklift driver'},
+ {id:uid(),empId:51432,name:'Ariful',designation:'Forklift driver',deptCode:'TGL Forklift driver'},
+ {id:uid(),empId:33927,name:'Md. Sovon Shah',designation:'(Officer) Executive',deptCode:'GT-06'},
+ {id:uid(),empId:35139,name:'Badol Chandra',designation:'(Officer) Jr Executive',deptCode:'GT-06'},
+ {id:uid(),empId:34317,name:'Md. Mojnu Alom',designation:'Labour',deptCode:'GT-06'},
+ {id:uid(),empId:34074,name:'Anonto Roy',designation:'Labour',deptCode:'GT-06'},
+ {id:uid(),empId:30887,name:'Shefaly  zahan',designation:'(Officer) Executive',deptCode:'GT-08'},
+ {id:uid(),empId:34530,name:'Umme Saleha akter',designation:'(Officer) Jr. Executive',deptCode:'GT-08'},
+ {id:uid(),empId:32897,name:'Horilal Ray',designation:'Labour',deptCode:'GT-08'},
+ {id:uid(),empId:34425,name:'Sunil Ray',designation:'Labour',deptCode:'GT-08'},
+];
+
+const DEFAULT_KPI_ITEMS = [
+ 'নিজ ডিপার্টমেন্ট এরিয়া ভিজ্যুয়াল চেক (এক্সজস্ট ফ্যান, লাইট, সুইচ, ওয়েট মেশিন চার্জ, ফরকলিফট ও অন্যান্য টুলস) / Visual check of own department area (exhaust fan, lights, switches, weighing machine charge, forklift & other tools)',
+ 'ডেইলি মর্নিং মিটিং (আজকের প্ল্যান, আর্জেন্ট ইস্যু, ডেলিভারি পরিকল্পনা, গতকালের ফিডব্যাক) / Daily morning meeting (today\'s plan, urgent issues, delivery plan, yesterday\'s feedback)',
+ 'ডেলিভারি টু প্রোডাকশন লাইন / Delivery to production line',
+ 'রিসিভ (IN) / Receive (IN)',
+ 'IQC',
+ 'পানিশমেন্ট / Punishment',
+ 'ক্লিনিং ও অর্গানাইজ / Cleaning & Organize',
+ 'ডেইলি চেকিং কোয়ান্টিটি / Daily Checking Quantity',
+ 'সেফটি কমপ্লায়েন্স (PPE ব্যবহার, নিরাপত্তা নিয়ম মানা) / Safety Compliance (PPE use, following safety rules)',
+ 'ডকুমেন্টেশন সম্পন্ন (MIS/Excel/Logbook/Bincard আপডেট) / Documentation Complete (MIS/Excel/Logbook/Bincard updated)',
+ 'সময়মতো উপস্থিতি ও পাংচুয়ালিটি / Punctuality & On-time Attendance',
+ '৫S / হাউজকিপিং স্ট্যান্ডার্ড / 5S / Housekeeping Standard',
+];
+
+const DEFAULT_DATA_CATS = ['IN','OUT','IQC'];
+
+const DEFAULT_POLICIES = [
+ {category:'উপস্থিতি / Attendance', title:'উপস্থিতি ও পাংচুয়ালিটি নীতি / Attendance & Punctuality Policy',
+  content:'সব কর্মীকে নির্ধারিত সময়ে উপস্থিত থাকতে হবে। ছুটি নিতে হলে অন্তত ১ দিন আগে বিভাগীয় প্রধানকে জানাতে হবে। ধারাবাহিক ৩ দিন অনুপস্থিত থাকলে HR-কে অবহিত করতে হবে। / All staff must report on time. Leave requests should be submitted to the department head at least 1 day in advance. 3 consecutive absences must be reported to HR.'},
+ {category:'সেফটি / Safety', title:'সেফটি ও PPE নীতি / Safety & PPE Policy',
+  content:'ওয়্যারহাউজ ও প্রোডাকশন এরিয়ায় নির্ধারিত PPE (হেলমেট, সেফটি সু, গ্লাভস) সবসময় পরিধান করতে হবে। ফরকলিফট চালানোর সময় লাইসেন্সধারী অপারেটর ছাড়া কেউ চালাতে পারবে না। / Required PPE (helmet, safety shoes, gloves) must be worn at all times in warehouse and production areas. Only licensed operators may drive forklifts.'},
+ {category:'ওভারটাইম / Overtime', title:'ওভারটাইম নীতি / Overtime Policy',
+  content:'ওভারটাইমের জন্য আগে থেকে বিভাগীয় প্রধানের অনুমোদন নিতে হবে। ওভারটাইম ঘণ্টা ডেইলি এন্ট্রিতে সঠিকভাবে রেকর্ড করতে হবে। / Overtime requires prior approval from the department head. OT hours must be accurately recorded in the daily entry.'},
+ {category:'ভিজিটর ও সিকিউরিটি / Visitor & Security', title:'ভিজিটর ও সিকিউরিটি নীতি / Visitor & Security Policy',
+  content:'বহিরাগত ভিজিটরদের রিসেপশনে রেজিস্টার করতে হবে এবং সবসময় ভিজিটর ব্যাজ পরতে হবে। নিরাপত্তা প্রহরীর অনুমতি ছাড়া কোনো মালামাল ফ্যাক্টরি গেট দিয়ে বের করা যাবে না। / Visitors must register at reception and wear a visitor badge at all times. No goods may leave the factory gate without security clearance.'},
+ {category:'হাউজকিপিং / Housekeeping', title:'ওয়্যারহাউজ হাউজকিপিং / ৫S নীতি / Warehouse Housekeeping / 5S Policy',
+  content:'প্রতিদিন শিফট শেষে নিজ নিজ এরিয়া পরিষ্কার ও গুছিয়ে রাখতে হবে। ৫S (Sort, Set in order, Shine, Standardize, Sustain) নিয়ম প্রতিটি ডিপার্টমেন্টে অনুসরণ করতে হবে। / Each area must be cleaned and organized at the end of every shift. 5S (Sort, Set in order, Shine, Standardize, Sustain) principles must be followed in every department.'},
+ {category:'ইনসিডেন্ট রিপোর্টিং / Incident Reporting', title:'ইনসিডেন্ট রিপোর্টিং নীতি / Incident Reporting Policy',
+  content:'যেকোনো দুর্ঘটনা, ক্ষতি, বা নিরাপত্তা সংক্রান্ত ঘটনা সাথে সাথে সুপারভাইজারকে জানাতে হবে এবং "নোট" মেনুর ঘটনা লগে এন্ট্রি দিতে হবে। / Any accident, damage, or safety-related incident must be reported to the supervisor immediately and logged in the Notes → Event Log.'},
+];
+
+const MASTER_DATA_VERSION = 3; // bump this whenever DEFAULT_EMPLOYEES / DEFAULT_DEPTS / DEFAULT_KPI_ITEMS change
+
+/* ---------------- init storage ---------------- */
+function initStorage(){
+  if(!localStorage.getItem(LS.depts)) saveSync(LS.depts, DEFAULT_DEPTS.map(d=>({...d,id:uid()})));
+  if(!localStorage.getItem(LS.employees)) saveSync(LS.employees, DEFAULT_EMPLOYEES);
+  if(!localStorage.getItem(LS.entries)) saveSync(LS.entries, {});
+  if(!localStorage.getItem(LS.kpiMaster)) saveSync(LS.kpiMaster, DEFAULT_KPI_ITEMS.map(t=>({id:uid(),label:t})));
+  if(!localStorage.getItem(LS.dataCatMaster)) saveSync(LS.dataCatMaster, DEFAULT_DATA_CATS.slice());
+  if(!localStorage.getItem(LS.events)) saveSync(LS.events, []);
+  if(!localStorage.getItem(LS.tasks)) saveSync(LS.tasks, []);
+  if(!localStorage.getItem(LS.policies)) saveSync(LS.policies, DEFAULT_POLICIES.map(p=>({id:uid(), ...p, updatedAt:todayStr()})));
+
+  // Migration: if this browser already had older master data saved (from a
+  // previous version of this app), merge in any new departments/employees
+  // from the updated defaults instead of silently skipping them.
+  const storedVersion = Number(localStorage.getItem('ewr_master_version') || '0');
+  if(storedVersion < MASTER_DATA_VERSION){
+    const depts = load(LS.depts, []);
+    const deptCodes = new Set(depts.map(d=>d.code));
+    DEFAULT_DEPTS.forEach(d=>{
+      if(!deptCodes.has(d.code)){ depts.push({...d, id:uid()}); deptCodes.add(d.code); }
+    });
+    saveSync(LS.depts, depts);
+
+    const emps = load(LS.employees, []);
+    const empKey = e => (e.empId!==''&&e.empId!==undefined&&e.empId!==null) ? ('id:'+e.empId) : ('nm:'+e.name+'|'+e.deptCode);
+    const existingKeys = new Set(emps.map(empKey));
+    DEFAULT_EMPLOYEES.forEach(e=>{
+      const k = empKey(e);
+      if(!existingKeys.has(k)){ emps.push({...e}); existingKeys.add(k); }
+    });
+    saveSync(LS.employees, emps);
+
+    // upgrade previously-saved KPI criteria labels to the new bilingual text
+    // (matched by the Bengali portion, so any custom criteria are left alone)
+    const kpis = load(LS.kpiMaster, []);
+    kpis.forEach(item=>{
+      if(item.label && item.label.includes('/')) return; // already bilingual / custom
+      const bnOnly = item.label;
+      const match = DEFAULT_KPI_ITEMS.find(full => full.split(' / ')[0] === bnOnly || full.startsWith(bnOnly));
+      if(match) item.label = match;
+    });
+    saveSync(LS.kpiMaster, kpis);
+
+    localStorage.setItem('ewr_master_version', String(MASTER_DATA_VERSION));
+  }
+}
+initStorage();
+
+let DEPTS = load(LS.depts, []);
+let EMPLOYEES = load(LS.employees, []);
+let ENTRIES = load(LS.entries, {});
+let KPI_MASTER = load(LS.kpiMaster, []);
+let DATA_CATS = load(LS.dataCatMaster, []);
+let EVENTS = load(LS.events, []);
+let TASKS = load(LS.tasks, []);
+let POLICIES = load(LS.policies, []);
+
+function entryKey(date, deptCode){ return date+'__'+deptCode; }
+function deptByCode(code){ return DEPTS.find(d=>d.code===code); }
+function ratingScore(r){ return {excellent:10, good:7, average:4, poor:0}[r] ?? 0; }
+function ratingLabel(r){ return {excellent:t('চমৎকার', 'Excellent', '优秀'), good:t('ভালো', 'Good', '良好'), average:t('মোটামুটি', 'Average', '一般'), poor:t('দুর্বল', 'Poor', '较差')}[r] || '—'; }
+
+/* ================= NAVIGATION ================= */
+const views = ['dashboard','entry','history','monthly','employees','notes','settings'];
+function showView(name){
+  const leavingEntry = document.getElementById('view-entry').style.display !== 'none';
+  if(leavingEntry && name!=='entry' && formDirty){
+    if(!confirm('ডেইলি এন্ট্রি ফর্মে সেভ না করা পরিবর্তন আছে — এগুলো বাদ দিয়ে অন্য পেজে যাবেন? / Unsaved changes in the entry form — discard and leave?')) return;
+    formDirty = false;
+  }
+  views.forEach(v=>{
+    document.getElementById('view-'+v).style.display = (v===name)?'block':'none';
+  });
+  document.querySelectorAll('.nav button').forEach(b=>b.classList.toggle('active', b.dataset.view===name));
+  if(name==='dashboard') renderDashboard();
+  if(name==='entry') renderEntryDeptOptions();
+  if(name==='history') renderHistory();
+  if(name==='monthly') renderMonthly();
+  if(name==='employees') renderEmployeesView();
+  if(name==='notes') renderNotesView();
+  if(name==='settings') renderSettings();
+}
+document.getElementById('navList').addEventListener('click', e=>{
+  const btn = e.target.closest('button[data-view]');
+  if(btn){
+    showView(btn.dataset.view);
+    closeMobileDrawer();
+  }
+});
+
+function openMobileDrawer(){
+  document.querySelector('.sidebar').classList.add('open');
+  document.getElementById('drawerBackdrop').classList.add('open');
+}
+function closeMobileDrawer(){
+  document.querySelector('.sidebar').classList.remove('open');
+  document.getElementById('drawerBackdrop').classList.remove('open');
+}
+document.getElementById('mobileMenuBtn').addEventListener('click', openMobileDrawer);
+document.getElementById('drawerBackdrop').addEventListener('click', closeMobileDrawer);
+function nextLang(cur){ return cur==='bn' ? 'en' : (cur==='en' ? 'zh' : 'bn'); }
+document.getElementById('langToggleBtn').addEventListener('click', ()=> setLanguage(nextLang(currentLang)));
+document.getElementById('langToggleBtnMobile').addEventListener('click', ()=> setLanguage(nextLang(currentLang)));
+
+/* ================================================================
+   DASHBOARD
+   ================================================================ */
+function allEntriesForDate(date){
+  return Object.values(ENTRIES).filter(e=>e.date===date);
+}
+function attCounts(entry){
+  let present=0,leave=0,absent=0,otHours=0;
+  (entry.attendance||[]).forEach(r=>{
+    present += Number(r.present)||0;
+    leave += Number(r.leave)||0;
+    absent += Number(r.absent)||0;
+    otHours += Number(r.otHours)||0;
+  });
+  return {present,leave,absent,otHours};
+}
+function kpiAvg(entry){
+  const rows = entry.kpi||[];
+  if(!rows.length) return null;
+  const total = rows.reduce((s,r)=>s+ratingScore(r.rating),0);
+  return Math.round((total/(rows.length*10))*100);
+}
+function pendingDataEntryCount(entry){
+  let pending=0;
+  (entry.dataEntry||[]).forEach(r=>{
+    ['mis','excel','logbook','bincard'].forEach(f=>{ if(r[f]!=='done') pending++; });
+  });
+  return pending;
+}
+
+function renderDashboard(){
+  const today = todayStr();
+  document.getElementById('dashDateLine').textContent = t('আজকের তারিখ', 'Today', '今天')+': '+today;
+  const todaysEntries = allEntriesForDate(today);
+
+  let present=0,absent=0,leave=0, kpiTotal=0, kpiCount=0, pendingData=0, forkHours=0;
+  todaysEntries.forEach(e=>{
+    const c = attCounts(e); present+=c.present; absent+=c.absent; leave+=c.leave;
+    const k = kpiAvg(e); if(k!==null){ kpiTotal+=k; kpiCount++; }
+    pendingData += pendingDataEntryCount(e);
+    (e.forklift||[]).forEach(f=> forkHours += Number(f.hours)||0);
+  });
+  const avgKpi = kpiCount? Math.round(kpiTotal/kpiCount) : null;
+
+  const cards = [
+    {lbl:t('আজ এন্ট্রি হয়েছে', 'Entries Today', '今日已录入'), val: todaysEntries.length+' / '+DEPTS.length, sub:t('ডিপার্টমেন্ট', 'Departments', '部门'), cls:''},
+    {lbl:t('মোট উপস্থিত', 'Total Present', '总出勤人数'), val: present, sub:t('সব ডিপার্টমেন্ট মিলিয়ে', 'All departments', '所有部门'), cls:'ok'},
+    {lbl:t('ছুটি + অনুপস্থিত', 'Leave + Absent', '请假 + 缺勤'), val: leave+absent, sub:t('ছুটি', 'Leave', '请假')+' '+leave+' · '+t('অনুপস্থিত', 'Absent', '缺勤')+' '+absent, cls: (absent>0?'warn':'')},
+    {lbl:t('গড় কেপিআই স্কোর', 'Avg KPI Score', '平均KPI分数'), val: (avgKpi!==null? avgKpi+'%':'—'), sub:t('আজকের এন্ট্রি অনুযায়ী', 'Based on today', '基于今日数据'), cls:(avgKpi!==null && avgKpi<70?'warn':'ok')},
+    {lbl:t('পেন্ডিং ডাটা এন্ট্রি', 'Pending Data Entry', '待处理数据录入'), val: pendingData, sub:'MIS/Excel/Logbook/Bincard', cls:(pendingData>0?'warn':'ok')},
+    {lbl:t('ফরকলিফট ব্যবহার', 'Forklift Usage', '叉车使用情况'), val: forkHours+' '+t('ঘণ্টা', 'hrs', '小时'), sub:t('আজকের মোট', 'Today total', '今日合计'), cls:''},
+  ];
+  document.getElementById('dashCards').innerHTML = cards.map(c=>`
+    <div class="kpi-card ${c.cls}">
+      <div class="lbl">${c.lbl}</div>
+      <div class="val">${c.val}</div>
+      <div class="sub">${c.sub}</div>
+    </div>`).join('');
+
+  // today status table
+  const rows = DEPTS.map(d=>{
+    const key = entryKey(today, d.code);
+    const e = ENTRIES[key];
+    const status = e ? '<span class="badge done">'+t('সাবমিট হয়েছে', 'Submitted', '已提交')+'</span>' : '<span class="badge pending">'+t('এন্ট্রি বাকি', 'Pending', '待处理')+'</span>';
+    const k = e? kpiAvg(e): null;
+    return `<tr><td class="mono">${d.code}</td><td>${d.factory}</td><td>${status}</td><td>${k!==null? k+'%':'—'}</td></tr>`;
+  }).join('');
+  document.getElementById('todayStatusTable').innerHTML =
+    `<thead><tr><th>${t('ডিপার্টমেন্ট', 'Department', '部门')}</th><th>${t('ফ্যাক্টরি', 'Factory', '工厂')}</th><th>${t('স্ট্যাটাস', 'Status', '状态')}</th><th>${t('কেপিআই', 'KPI', 'KPI')}</th></tr></thead><tbody>${rows}</tbody>`;
+
+  renderFactoryAttCards(today);
+  renderManpowerFactoryTable();
+  renderAttTrendChart();
+  renderKpiDeptChart();
+}
+
+/* --- employee designation classification --- */
+function classifyODL(desig){
+  const d = (desig||'').toLowerCase();
+  if(d.includes('driver')) return 'driver';
+  if(d.includes('labour') || d.includes('labor')) return 'labour';
+  return 'officer';
+}
+function classifyOfficerLabour(desig){
+  const c = classifyODL(desig);
+  return c==='officer' ? 'officer' : 'labour'; // driver folded into labour for simple 2-way views
+}
+
+function renderFactoryAttCards(today){
+  const html = FACTORIES.map(f=>{
+    let present=0, leave=0, absent=0;
+    allEntriesForDate(today).forEach(e=>{
+      const dept = deptByCode(e.deptCode);
+      if(!dept || dept.factory!==f) return;
+      const c = attCounts(e); present+=c.present; leave+=c.leave; absent+=c.absent;
+    });
+    return `<div class="kpi-card ${absent>0?'warn':'ok'}">
+      <div class="lbl">${f}</div>
+      <div class="val">${present}</div>
+      <div class="sub">${t('মোট উপস্থিত', 'Total Present', '总出勤人数')}</div>
+      <div class="sub">${t('ছুটি+অনুপস্থিত', 'Leave+Absent', '请假+缺勤')}: ${leave+absent} (${t('ছুটি', 'Leave', '请假')} ${leave} · ${t('অনুপস্থিত', 'Absent', '缺勤')} ${absent})</div>
+    </div>`;
+  }).join('');
+  document.getElementById('factoryAttCards').innerHTML = html;
+}
+
+function renderManpowerFactoryTable(){
+  const byFactory = {};
+  FACTORIES.forEach(f=> byFactory[f] = {officer:0, labour:0, driver:0});
+  EMPLOYEES.forEach(e=>{
+    const dept = deptByCode(e.deptCode);
+    const f = dept ? dept.factory : null;
+    if(!f || !byFactory[f]) return;
+    byFactory[f][classifyODL(e.designation)]++;
+  });
+  let tO=0,tL=0,tD=0;
+  const rows = FACTORIES.map(f=>{
+    const c = byFactory[f]; const total = c.officer+c.labour+c.driver;
+    tO+=c.officer; tL+=c.labour; tD+=c.driver;
+    return `<tr><td class="mono">${f}</td><td>${c.officer}</td><td>${c.labour}</td><td>${c.driver}</td><td><b>${total}</b></td></tr>`;
+  }).join('');
+  document.getElementById('manpowerFactoryTable').innerHTML = `
+    <thead><tr><th>${t('ফ্যাক্টরি', 'Factory', '工厂')}</th><th>${t('অফিসার', 'Officer', '职员')}</th><th>${t('লেবার', 'Labour', '劳工')}</th><th>${t('ড্রাইভার', 'Driver', '司机')}</th><th>${t('মোট', 'Total', '总计')}</th></tr></thead>
+    <tbody>${rows}<tr style="background:#eef2f0;font-weight:700;"><td>Total</td><td>${tO}</td><td>${tL}</td><td>${tD}</td><td>${tO+tL+tD}</td></tr></tbody>`;
+}
+
+function renderAttTrendChart(){
+  const ctx = document.getElementById('attTrendChart');
+  if(window.__attChart) window.__attChart.destroy();
+  const days = [];
+  for(let i=6;i>=0;i--){ const d=new Date(); d.setDate(d.getDate()-i); days.push(d.toISOString().slice(0,10)); }
+  const byFactory = {};
+  FACTORIES.forEach(f=> byFactory[f] = days.map(day=>{
+    let sum=0;
+    allEntriesForDate(day).forEach(e=>{
+      const dept = deptByCode(e.deptCode);
+      if(dept && dept.factory===f) sum += attCounts(e).present;
+    });
+    return sum;
+  }));
+  const colors = ['#173a5e','#f2a63a','#1f9d73','#d5493a','#2f7db0','#8a5cb5'];
+  const datasets = FACTORIES.map((f,i)=>({label:f, data:byFactory[f], borderColor:colors[i%colors.length], backgroundColor:colors[i%colors.length], tension:.3, fill:false}));
+  window.__attChart = new Chart(ctx, {type:'line', data:{labels:days, datasets}, options:{responsive:true, plugins:{legend:{position:'bottom'}}}});
+}
+
+function renderKpiDeptChart(){
+  const ctx = document.getElementById('kpiDeptChart');
+  if(window.__kpiChart) window.__kpiChart.destroy();
+  const perDept = DEPTS.map(d=>{
+    const es = Object.values(ENTRIES).filter(e=>e.deptCode===d.code);
+    const scores = es.map(kpiAvg).filter(v=>v!==null);
+    const avg = scores.length? Math.round(scores.reduce((a,b)=>a+b,0)/scores.length) : 0;
+    return {code:d.code, avg};
+  }).filter(d=>d.avg>0);
+  window.__kpiChart = new Chart(ctx, {
+    type:'bar',
+    data:{labels: perDept.map(d=>d.code), datasets:[{label:'গড় কেপিআই % / Avg KPI %', data: perDept.map(d=>d.avg), backgroundColor:'#f2a63a'}]},
+    options:{responsive:true, plugins:{legend:{display:false}}, scales:{y:{beginAtZero:true,max:100}}}
+  });
+}
+
+/* ================================================================
+   DAILY ENTRY
+   ================================================================ */
+let currentEntry = null;
+let formDirty = false;
+
+function renderEntryDeptOptions(){
+  const sel = document.getElementById('entryDept');
+  sel.innerHTML = DEPTS.map(d=>`<option value="${d.code}">${d.label||d.code}</option>`).join('');
+  if(!document.getElementById('entryDate').value) document.getElementById('entryDate').value = todayStr();
+  onEntryDeptChange();
+}
+document.getElementById('entryDept').addEventListener('change', ()=>{
+  if(!guardUnsavedChanges()) return;
+  onEntryDeptChange();
+});
+document.getElementById('entryDate').addEventListener('change', ()=>{
+  if(!guardUnsavedChanges()) return;
+  loadEntryForm();
+});
+document.getElementById('loadEntryBtn').addEventListener('click', ()=>{
+  if(!guardUnsavedChanges()) return;
+  loadEntryForm();
+});
+
+function guardUnsavedChanges(){
+  if(!formDirty || !currentEntry) return true;
+  const ok = confirm('এই ফর্মে সেভ না করা পরিবর্তন আছে — এগুলো বাদ দিয়ে অন্য তারিখ/ডিপার্টমেন্ট লোড করবেন? / Unsaved changes — discard and load a different date/department?');
+  if(ok){ formDirty = false; return true; }
+  // revert the inputs back to what's currently loaded
+  document.getElementById('entryDate').value = currentEntry.date;
+  document.getElementById('entryDept').value = currentEntry.deptCode;
+  const d = deptByCode(currentEntry.deptCode);
+  document.getElementById('entryFactory').value = d? d.factory : '';
+  return false;
+}
+
+// mark the form dirty on any real edit inside the entry view (but not the
+// date/department/factory selectors themselves, which are guarded above)
+['input','change'].forEach(evt=>{
+  document.getElementById('view-entry').addEventListener(evt, e=>{
+    if(['entryDate','entryDept','entryFactory'].includes(e.target.id)) return;
+    formDirty = true;
+  });
+});
+document.getElementById('view-entry').addEventListener('click', e=>{
+  if(e.target.closest('.icon-btn') || ['addAttRow','addKpiRow','addDataRow','addForkRow'].includes(e.target.id)){
+    formDirty = true;
+  }
+});
+
+function onEntryDeptChange(){
+  const code = document.getElementById('entryDept').value;
+  const d = deptByCode(code);
+  document.getElementById('entryFactory').value = d? d.factory : '';
+  loadEntryForm();
+}
+
+function blankEntry(date, deptCode){
+  const emps = EMPLOYEES.filter(e=>e.deptCode===deptCode);
+  return {
+    date, deptCode,
+    attendance: emps.map(e=>({empId:e.id, present:1, leave:0, absent:0, ot:'no', otQty:0, otHours:0, remarks:''})),
+    kpi: KPI_MASTER.map(k=>({itemId:k.id, label:k.label, rating:'good', remarks:''})),
+    dataEntry: DATA_CATS.map(c=>({category:c, qty:0, mis:'pending', excel:'pending', logbook:'pending', bincard:'pending'})),
+    forklift: [],
+    savedAt: null
+  };
+}
+
+function loadEntryForm(){
+  const date = document.getElementById('entryDate').value || todayStr();
+  const deptCode = document.getElementById('entryDept').value;
+  if(!deptCode) return;
+  const key = entryKey(date, deptCode);
+  currentEntry = ENTRIES[key] ? JSON.parse(JSON.stringify(ENTRIES[key])) : blankEntry(date, deptCode);
+  formDirty = false;
+  document.getElementById('entryStatusHint').textContent = ENTRIES[key]
+    ? '✓ '+t('এই তারিখে', 'On this date', '在此日期')+' '+deptCode+' '+t('এর এন্ট্রি আগে সেভ করা আছে, এডিট করতে পারবেন। শেষ সেভ:', 'already has a saved entry, you can edit it. Last saved:', '已有保存的记录，您可以编辑。最后保存时间：')+' '+ (ENTRIES[key].savedAt||'')
+    : t('নতুন এন্ট্রি — এখনও সেভ করা হয়নি', 'New entry — not yet saved', '新记录 — 尚未保存');
+  renderAttTable();
+  renderFtyAttTable();
+  renderKpiTable();
+  renderDataEntryTable();
+  renderForkTable();
+}
+
+/* --- attendance table --- */
+function renderAttTable(){
+  const rows = currentEntry.attendance.map((r,i)=>{
+    const emp = EMPLOYEES.find(e=>e.id===r.empId) || {name:'(অজানা)', empId:'', designation:''};
+    return `<tr data-i="${i}">
+      <td>${i+1}</td>
+      <td>${emp.name}<div class="small mono">${emp.empId||''}</div></td>
+      <td>${emp.designation||''}</td>
+      <td><input class="cell" type="number" min="0" data-field="present" value="${r.present}" style="width:55px;"></td>
+      <td><input class="cell" type="number" min="0" data-field="leave" value="${r.leave}" style="width:55px;"></td>
+      <td><input class="cell" type="number" min="0" data-field="absent" value="${r.absent}" style="width:55px;"></td>
+      <td><select class="cell" data-field="ot" style="width:60px;">
+            <option value="no" ${r.ot==='no'?'selected':''}>${t('না', 'No', '否')}</option>
+            <option value="yes" ${r.ot==='yes'?'selected':''}>${t('হ্যাঁ', 'Yes', '是')}</option>
+          </select></td>
+      <td><input class="cell" type="number" min="0" data-field="otQty" value="${r.otQty}" style="width:55px;"></td>
+      <td><input class="cell" type="number" min="0" data-field="otHours" value="${r.otHours}" style="width:55px;"></td>
+      <td><input class="cell" type="text" data-field="remarks" value="${r.remarks||''}" style="width:110px;text-align:right;"></td>
+      <td><button class="icon-btn" data-del="${i}" title="মুছুন">✕</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('attTable').innerHTML = `
+    <thead><tr><th>${t('ক্র.', 'No.', '序号')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('পদবি', 'Designation', '职位')}</th><th>${t('উপস্থিত', 'Present', '出勤')}</th><th>${t('ছুটি', 'Leave', '请假')}</th><th>${t('অনুপস্থিত', 'Absent', '缺勤')}</th><th>${t('ওটি', 'OT', '加班')}</th><th>${t('ওটি সংখ্যা', 'OT Qty', '加班次数')}</th><th>${t('ওটি ঘণ্টা', 'OT Hrs', '加班小时')}</th><th>${t('মন্তব্য', 'Remarks', '备注')}</th><th></th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="11" style="text-align:center;color:#999;">এই ডিপার্টমেন্টে কোনো এমপ্লয়ি নেই / No employees in this department — "এমপ্লয়ি ও ডিপার্টমেন্ট" থেকে যোগ করুন</td></tr>'}</tbody>`;
+
+  document.querySelectorAll('#attTable input.cell, #attTable select.cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const tr = e.target.closest('tr'); const i = Number(tr.dataset.i);
+      const field = e.target.dataset.field;
+      currentEntry.attendance[i][field] = (field==='remarks'||field==='ot') ? e.target.value : Number(e.target.value)||0;
+      updateAttSummary();
+    });
+  });
+  document.querySelectorAll('#attTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      currentEntry.attendance.splice(Number(e.target.dataset.del),1);
+      renderAttTable(); updateAttSummary();
+    });
+  });
+  updateAttSummary();
+}
+function updateAttSummary(){
+  const c = attCounts(currentEntry);
+  document.getElementById('attSummaryLine').textContent =
+    `${t('মোট', 'Total', '总计')}: ${t('উপস্থিত', 'Present', '出勤')} ${c.present} · ${t('ছুটি', 'Leave', '请假')} ${c.leave} · ${t('অনুপস্থিত', 'Absent', '缺勤')} ${c.absent} · ${t('ওটি ঘণ্টা', 'OT Hrs', '加班小时')} ${c.otHours}`;
+}
+document.getElementById('addAttRow').addEventListener('click', ()=>{
+  const code = currentEntry.deptCode;
+  const name = prompt('কর্মীর নাম লিখুন / Enter employee name (যদি মাস্টার লিস্টে না থাকে, নতুন হিসেবে যোগ হবে / added as new if not already in master list):');
+  if(!name) return;
+  let emp = EMPLOYEES.find(e=>e.name===name && e.deptCode===code);
+  if(!emp){
+    emp = {id:uid(), empId:'', name, designation:'', deptCode:code};
+    EMPLOYEES.push(emp); saveSync(LS.employees, EMPLOYEES);
+  }
+  currentEntry.attendance.push({empId:emp.id, present:1, leave:0, absent:0, ot:'no', otQty:0, otHours:0, remarks:''});
+  renderAttTable();
+});
+document.getElementById('markAllPresentBtn').addEventListener('click', ()=>{
+  if(!currentEntry || !currentEntry.attendance.length) return;
+  currentEntry.attendance.forEach(r=>{ r.present=1; r.leave=0; r.absent=0; });
+  formDirty = true;
+  renderAttTable();
+  toast('✓ সবাইকে উপস্থিত মার্ক করা হয়েছে / All marked present');
+});
+
+/* --- factory-wise attendance (auto) --- */
+function renderFtyAttTable(){
+  const date = currentEntry.date;
+  const rows = FACTORIES.map(f=>{
+    let officers=0, labourers=0, drivers=0, present=0, leave=0, absent=0, ot=0;
+    allEntriesForDate(date).forEach(e=>{
+      const dept = deptByCode(e.deptCode);
+      if(!dept || dept.factory!==f) return;
+      (e.attendance||[]).forEach(r=>{
+        const emp = EMPLOYEES.find(x=>x.id===r.empId);
+        const desig = (emp && emp.designation||'').toLowerCase();
+        if(desig.includes('driver')) drivers++;
+        else if(desig.includes('labour')) labourers++;
+        else officers++;
+        present += Number(r.present)||0; leave += Number(r.leave)||0; absent += Number(r.absent)||0;
+        if(r.ot==='yes') ot++;
+      });
+    });
+    const total = officers+labourers+drivers;
+    return `<tr><td class="mono">${f}</td><td>${officers}</td><td>${labourers}</td><td>${drivers}</td><td><b>${total}</b></td><td>${present}</td><td>${leave}</td><td>${absent}</td><td>${ot}</td></tr>`;
+  }).join('');
+  document.getElementById('ftyAttTable').innerHTML = `
+    <thead><tr><th>${t('ফ্যাক্টরি', 'Factory', '工厂')}</th><th>${t('অফিসার', 'Officer', '职员')}</th><th>${t('লেবারার', 'Labour', '劳工')}</th><th>${t('ড্রাইভার', 'Driver', '司机')}</th><th>${t('মোট', 'Total', '总计')}</th><th>${t('উপস্থিত', 'Present', '出勤')}</th><th>${t('ছুটি', 'Leave', '请假')}</th><th>${t('অনুপস্থিত', 'Absent', '缺勤')}</th><th>${t('ওটি', 'OT', '加班')}</th></tr></thead>
+    <tbody>${rows}</tbody>`;
+}
+
+/* --- KPI table --- */
+function renderKpiTable(){
+  const rows = currentEntry.kpi.map((r,i)=>`
+    <tr data-i="${i}">
+      <td>${i+1}</td>
+      <td style="text-align:right;max-width:340px;white-space:normal;">${r.label}</td>
+      <td>
+        <select class="cell" data-field="rating" style="width:110px;">
+          <option value="excellent" ${r.rating==='excellent'?'selected':''}>${t('চমৎকার', 'Excellent', '优秀')}</option>
+          <option value="good" ${r.rating==='good'?'selected':''}>${t('ভালো', 'Good', '良好')}</option>
+          <option value="average" ${r.rating==='average'?'selected':''}>${t('মোটামুটি', 'Average', '一般')}</option>
+          <option value="poor" ${r.rating==='poor'?'selected':''}>${t('দুর্বল', 'Poor', '较差')}</option>
+        </select>
+      </td>
+      <td><span class="stamp ${r.rating}">${ratingLabel(r.rating)} · ${ratingScore(r.rating)}</span></td>
+      <td><input class="cell" type="text" data-field="remarks" value="${r.remarks||''}" style="width:140px;text-align:right;" placeholder="মন্তব্য"></td>
+      <td><button class="icon-btn" data-del="${i}">✕</button></td>
+    </tr>`).join('');
+  document.getElementById('kpiTable').innerHTML = `
+    <thead><tr><th>${t('ক্র.', 'No.', '序号')}</th><th>${t('ক্রাইটেরিয়া', 'Criteria', '标准')}</th><th>${t('রেটিং', 'Rating', '评分')}</th><th>${t('স্কোর', 'Score', '分数')}</th><th>${t('মন্তব্য', 'Remarks', '备注')}</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>`;
+  document.querySelectorAll('#kpiTable select.cell').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      const tr = e.target.closest('tr'); const i = Number(tr.dataset.i);
+      currentEntry.kpi[i][e.target.dataset.field] = e.target.value;
+      renderKpiTable();
+    });
+  });
+  document.querySelectorAll('#kpiTable input.cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const tr = e.target.closest('tr'); const i = Number(tr.dataset.i);
+      currentEntry.kpi[i][e.target.dataset.field] = e.target.value;
+      // no full re-render here on purpose — keeps focus/cursor while typing remarks
+    });
+  });
+  document.querySelectorAll('#kpiTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{ currentEntry.kpi.splice(Number(e.target.dataset.del),1); renderKpiTable(); });
+  });
+  const k = kpiAvg(currentEntry);
+  document.getElementById('kpiSummaryLine').innerHTML = k!==null
+    ? `${t('সার্বিক কেপিআই স্কোর', 'Overall KPI Score', '总体KPI分数')}: <span class="stamp ${k>=85?'excellent':k>=65?'good':k>=40?'average':'poor'}">${k}%</span>`
+    : '';
+}
+document.getElementById('addKpiRow').addEventListener('click', ()=>{
+  const label = prompt('নতুন ক্রাইটেরিয়ার নাম লিখুন / Enter new criteria name:');
+  if(!label) return;
+  currentEntry.kpi.push({itemId:uid(), label, rating:'good', remarks:''});
+  renderKpiTable();
+});
+
+/* --- data entry table --- */
+function statusSelect(field, val, i){
+  return `<select class="cell" data-field="${field}" data-i="${i}" style="width:100px;">
+    <option value="pending" ${val==='pending'?'selected':''}>Pending</option>
+    <option value="done" ${val==='done'?'selected':''}>Done</option>
+  </select>`;
+}
+function renderDataEntryTable(){
+  const rows = currentEntry.dataEntry.map((r,i)=>`
+    <tr data-i="${i}">
+      <td>${i+1}</td>
+      <td><input class="cell" type="text" data-field="category" value="${r.category}" style="width:90px;"></td>
+      <td><input class="cell" type="number" data-field="qty" value="${r.qty}" style="width:80px;"></td>
+      <td>${statusSelect('mis', r.mis, i)}</td>
+      <td>${statusSelect('excel', r.excel, i)}</td>
+      <td>${statusSelect('logbook', r.logbook, i)}</td>
+      <td>${statusSelect('bincard', r.bincard, i)}</td>
+      <td><button class="icon-btn" data-del="${i}">✕</button></td>
+    </tr>`).join('');
+  document.getElementById('dataEntryTable').innerHTML = `
+    <thead><tr><th>${t('ক্র.', 'No.', '序号')}</th><th>${t('ক্যাটাগরি', 'Category', '类别')}</th><th>${t('আইটেম কোয়ান্টিটি', 'Qty', '数量')}</th><th>MIS</th><th>Excel</th><th>Logbook</th><th>Bincard</th><th></th></tr></thead>
+    <tbody>${rows}</tbody>`;
+  document.querySelectorAll('#dataEntryTable input.cell, #dataEntryTable select.cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const i = Number(e.target.dataset.i ?? e.target.closest('tr').dataset.i);
+      const field = e.target.dataset.field;
+      currentEntry.dataEntry[i][field] = (field==='qty')? Number(e.target.value)||0 : e.target.value;
+    });
+  });
+  document.querySelectorAll('#dataEntryTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{ currentEntry.dataEntry.splice(Number(e.target.dataset.del),1); renderDataEntryTable(); });
+  });
+}
+document.getElementById('addDataRow').addEventListener('click', ()=>{
+  currentEntry.dataEntry.push({category:'নতুন', qty:0, mis:'pending', excel:'pending', logbook:'pending', bincard:'pending'});
+  renderDataEntryTable();
+});
+
+/* --- forklift table --- */
+function renderForkTable(){
+  const rows = currentEntry.forklift.map((r,i)=>`
+    <tr data-i="${i}">
+      <td>${i+1}</td>
+      <td><input class="cell" type="text" data-field="number" value="${r.number||''}" style="width:90px;"></td>
+      <td><input class="cell" type="number" data-field="hours" value="${r.hours||0}" style="width:80px;"></td>
+      <td><input class="cell" type="text" data-field="area" value="${r.area||''}" style="width:100px;"></td>
+      <td><input class="cell" type="number" data-field="mileage" value="${r.mileage||0}" style="width:90px;"></td>
+      <td><input class="cell" type="number" data-field="lend" value="${r.lend||0}" style="width:90px;" title="অন্য ফ্যাক্টরিতে ধার (ঘণ্টা)"></td>
+      <td><button class="icon-btn" data-del="${i}">✕</button></td>
+    </tr>`).join('');
+  document.getElementById('forkTable').innerHTML = `
+    <thead><tr><th>${t('ক্র.', 'No.', '序号')}</th><th>${t('ফরকলিফট নং', 'Forklift No.', '叉车编号')}</th><th>${t('ব্যবহার', 'Hours Used', '使用小时数')}</th><th>${t('এরিয়া/ফ্যাক্টরি', 'Area', '区域')}</th><th>${t('মাইলেজ', 'Mileage', '里程')}</th><th>${t('ধার', 'Lent (hrs)', '外借（小时）')}</th><th></th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999;">কোনো এন্ট্রি নেই / No entries</td></tr>'}</tbody>`;
+  document.querySelectorAll('#forkTable input.cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const tr = e.target.closest('tr'); const i = Number(tr.dataset.i);
+      const field = e.target.dataset.field;
+      currentEntry.forklift[i][field] = ['hours','mileage','lend'].includes(field) ? Number(e.target.value)||0 : e.target.value;
+    });
+  });
+  document.querySelectorAll('#forkTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{ currentEntry.forklift.splice(Number(e.target.dataset.del),1); renderForkTable(); });
+  });
+}
+document.getElementById('addForkRow').addEventListener('click', ()=>{
+  currentEntry.forklift.push({number:'', hours:0, area:'', mileage:0, lend:0});
+  renderForkTable();
+});
+
+document.getElementById('saveEntryBtn').addEventListener('click', openSaveModal);
+
+function openSaveModal(){
+  if(!currentEntry) return;
+  const c = attCounts(currentEntry);
+  const k = kpiAvg(currentEntry);
+  const dept = deptByCode(currentEntry.deptCode);
+  document.getElementById('saveModalSummary').innerHTML =
+    `${t('তারিখ', 'Date', '日期')}: <b>${currentEntry.date}</b><br>`+
+    `${t('ডিপার্টমেন্ট', 'Dept', '部门')}: <b>${currentEntry.deptCode}</b> (${dept?dept.factory:''})<br>`+
+    `${t('উপস্থিত', 'Present', '出勤')}: <b>${c.present}</b> · ${t('ছুটি', 'Leave', '请假')}: <b>${c.leave}</b> · ${t('অনুপস্থিত', 'Absent', '缺勤')}: <b>${c.absent}</b><br>`+
+    `${t('কেপিআই', 'KPI', 'KPI')} Score: <b>${k!==null? k+'%' : '—'}</b>`;
+  document.getElementById('saveModalPassword').value = '';
+  document.getElementById('saveModalError').textContent = '';
+  document.getElementById('saveModalBackdrop').classList.add('open');
+  setTimeout(()=> document.getElementById('saveModalPassword').focus(), 50);
+}
+function closeSaveModal(){
+  document.getElementById('saveModalBackdrop').classList.remove('open');
+}
+document.getElementById('saveModalCancel').addEventListener('click', closeSaveModal);
+document.getElementById('saveModalBackdrop').addEventListener('click', e=>{
+  if(e.target.id==='saveModalBackdrop') closeSaveModal();
+});
+document.getElementById('saveModalPassword').addEventListener('keydown', e=>{
+  if(e.key==='Enter') confirmSaveEntry();
+});
+document.getElementById('saveModalConfirm').addEventListener('click', confirmSaveEntry);
+
+function confirmSaveEntry(){
+  const pass = document.getElementById('saveModalPassword').value.trim();
+  const expected = (currentEntry.deptCode||'').trim();
+  if(!pass){
+    document.getElementById('saveModalError').textContent = 'পাসওয়ার্ড লিখুন';
+    return;
+  }
+  if(pass.toLowerCase() !== expected.toLowerCase()){
+    document.getElementById('saveModalError').textContent = 'পাসওয়ার্ড সঠিক নয় — ডিপার্টমেন্টের নাম দিন (যেমন: '+expected+')';
+    return;
+  }
+  currentEntry.savedAt = new Date().toLocaleString('bn-BD');
+  const key = entryKey(currentEntry.date, currentEntry.deptCode);
+  ENTRIES[key] = currentEntry;
+  saveSync(LS.entries, ENTRIES);
+  closeSaveModal();
+  toast('✓ এন্ট্রি সেভ হয়েছে / Entry saved — '+currentEntry.deptCode+' ('+currentEntry.date+')');
+  loadEntryForm();
+}
+document.getElementById('clearEntryBtn').addEventListener('click', ()=>{
+  if(confirm('এই ফর্ম রিসেট করবেন? সেভ না করা তথ্য মুছে যাবে। / Reset this form? Unsaved data will be lost.')) loadEntryForm();
+});
+document.getElementById('entryPrintBtn').addEventListener('click', ()=>{
+  if(!currentEntry) return;
+  printCurrentView('ডেইলি ওয়ার্ক রিপোর্ট — '+currentEntry.deptCode+' ('+currentEntry.date+')');
+});
+
+/* ================================================================
+   HISTORY
+   ================================================================ */
+function renderHistory(){
+  const sel = document.getElementById('histDept');
+  sel.innerHTML = '<option value="">সব</option>' + DEPTS.map(d=>`<option value="${d.code}">${d.code}</option>`).join('');
+  if(!document.getElementById('histFrom').value){
+    const d = new Date(); d.setDate(d.getDate()-14);
+    document.getElementById('histFrom').value = d.toISOString().slice(0,10);
+    document.getElementById('histTo').value = todayStr();
+  }
+  renderHistoryTable();
+}
+document.getElementById('histFilterBtn').addEventListener('click', renderHistoryTable);
+document.getElementById('histSearchBox').addEventListener('input', renderHistoryTable);
+document.getElementById('histPrintBtn').addEventListener('click', ()=>printCurrentView('হিস্ট্রি রিপোর্ট'));
+function renderHistoryTable(){
+  const from = document.getElementById('histFrom').value;
+  const to = document.getElementById('histTo').value;
+  const deptFilter = document.getElementById('histDept').value;
+  const search = document.getElementById('histSearchBox').value.trim().toLowerCase();
+  let list = Object.values(ENTRIES).filter(e=>{
+    if(from && e.date<from) return false;
+    if(to && e.date>to) return false;
+    if(search && !e.deptCode.toLowerCase().includes(search)) return false;
+    if(deptFilter && e.deptCode!==deptFilter) return false;
+    return true;
+  }).sort((a,b)=> b.date.localeCompare(a.date));
+
+  const rows = list.map(e=>{
+    const c = attCounts(e); const k = kpiAvg(e);
+    return `<tr>
+      <td>${e.date}</td>
+      <td class="mono">${e.deptCode}</td>
+      <td>${c.present}</td><td>${c.leave}</td><td>${c.absent}</td>
+      <td>${k!==null? `<span class="stamp ${k>=85?'excellent':k>=65?'good':k>=40?'average':'poor'}">${k}%</span>` : '—'}</td>
+      <td><button class="btn btn-ghost btn-sm" data-edit="${e.date}|${e.deptCode}">এডিট</button>
+          <button class="btn btn-danger btn-sm" data-del="${e.date}|${e.deptCode}">মুছুন</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('histTable').innerHTML = `
+    <thead><tr><th>${t('তারিখ', 'Date', '日期')}</th><th>${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th><th>${t('উপস্থিত', 'Present', '出勤')}</th><th>${t('ছুটি', 'Leave', '请假')}</th><th>${t('অনুপস্থিত', 'Absent', '缺勤')}</th><th>${t('কেপিআই', 'KPI', 'KPI')}</th><th></th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999;">কোনো এন্ট্রি পাওয়া যায়নি / No entries found</td></tr>'}</tbody>`;
+
+  document.querySelectorAll('#histTable [data-edit]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      const [date, dept] = e.target.dataset.edit.split('|');
+      document.getElementById('entryDate').value = date;
+      showView('entry');
+      document.getElementById('entryDept').value = dept;
+      onEntryDeptChange();
+    });
+  });
+  document.querySelectorAll('#histTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      if(!confirm('এই এন্ট্রি মুছে ফেলবেন? / Delete this entry?')) return;
+      const [date, dept] = e.target.dataset.del.split('|');
+      delete ENTRIES[entryKey(date,dept)];
+      saveSync(LS.entries, ENTRIES);
+      renderHistoryTable();
+    });
+  });
+}
+
+/* ================================================================
+   MONTHLY SUMMARY
+   ================================================================ */
+function renderMonthly(){
+  if(!document.getElementById('monthPicker').value) document.getElementById('monthPicker').value = todayStr().slice(0,7);
+  buildMonthly();
+}
+document.getElementById('monthGoBtn').addEventListener('click', buildMonthly);
+document.getElementById('monthPrintBtn').addEventListener('click', ()=>{
+  printCurrentView('মাসিক সামারি — '+(document.getElementById('monthPicker').value||''));
+});
+function buildMonthly(){
+  const month = document.getElementById('monthPicker').value;
+  const list = Object.values(ENTRIES).filter(e=>monthStr(e.date)===month);
+
+  let present=0,leave=0,absent=0,kpiSum=0,kpiCnt=0, otHours=0;
+  list.forEach(e=>{
+    const c = attCounts(e); present+=c.present; leave+=c.leave; absent+=c.absent; otHours+=c.otHours;
+    const k = kpiAvg(e); if(k!==null){ kpiSum+=k; kpiCnt++; }
+  });
+  const avgKpi = kpiCnt? Math.round(kpiSum/kpiCnt) : null;
+  const attRate = (present+leave+absent)>0 ? Math.round((present/(present+leave+absent))*100) : null;
+
+  document.getElementById('monthCards').innerHTML = [
+    {lbl:t('মোট এন্ট্রি', 'Total Entries', '总记录数'), val:list.length, sub:t('এই মাসে', 'This month', '本月')},
+    {lbl:t('উপস্থিতির হার', 'Attendance Rate', '出勤率'), val: attRate!==null? attRate+'%':'—', sub:'Present/(Present+Leave+Absent)'},
+    {lbl:t('গড় কেপিআই', 'Avg KPI', '平均KPI'), val: avgKpi!==null? avgKpi+'%':'—', sub:t('সব ডিপার্টমেন্ট', 'All departments', '所有部门')},
+    {lbl:t('মোট ওটি ঘণ্টা', 'Total OT Hrs', '总加班小时'), val: otHours, sub:t('এই মাসে', 'This month', '本月')},
+  ].map(c=>`<div class="kpi-card"><div class="lbl">${c.lbl}</div><div class="val">${c.val}</div><div class="sub">${c.sub}</div></div>`).join('');
+
+  const rows = DEPTS.map(d=>{
+    const es = list.filter(e=>e.deptCode===d.code);
+    if(!es.length) return `<tr><td class="mono">${d.code}</td><td>${d.factory}</td><td colspan="4" style="color:#999;">এন্ট্রি নেই / No entries</td></tr>`;
+    let p=0,l=0,a=0; es.forEach(e=>{const c=attCounts(e); p+=c.present;l+=c.leave;a+=c.absent;});
+    const scores = es.map(kpiAvg).filter(v=>v!==null);
+    const avg = scores.length? Math.round(scores.reduce((x,y)=>x+y,0)/scores.length):null;
+    return `<tr><td class="mono">${d.code}</td><td>${d.factory}</td><td>${es.length}</td><td>${p}</td><td>${a}</td><td>${avg!==null?avg+'%':'—'}</td></tr>`;
+  }).join('');
+  document.getElementById('monthDeptTable').innerHTML = `
+    <thead><tr><th>${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th><th>${t('ফ্যাক্টরি', 'Factory', '工厂')}</th><th>${t('এন্ট্রি সংখ্যা', 'Entries', '记录')}</th><th>${t('উপস্থিত', 'Present', '出勤')}</th><th>${t('অনুপস্থিত', 'Absent', '缺勤')}</th><th>${t('গড় কেপিআই', 'Avg KPI', '平均KPI')}</th></tr></thead>
+    <tbody>${rows}</tbody>`;
+
+  // trend chart across days in month
+  const ctx = document.getElementById('monthTrendChart');
+  if(window.__monthChart) window.__monthChart.destroy();
+  const byDay = {};
+  list.forEach(e=>{ const k=kpiAvg(e); if(k!==null){ (byDay[e.date] = byDay[e.date]||[]).push(k); } });
+  const days = Object.keys(byDay).sort();
+  const avgs = days.map(d=> Math.round(byDay[d].reduce((a,b)=>a+b,0)/byDay[d].length));
+  window.__monthChart = new Chart(ctx, {
+    type:'line',
+    data:{labels:days, datasets:[{label:'গড় কেপিআই % / Avg KPI %', data:avgs, borderColor:'#1f9d73', backgroundColor:'#1f9d73', tension:.3}]},
+    options:{responsive:true, scales:{y:{beginAtZero:true,max:100}}}
+  });
+}
+
+/* ================================================================
+   EMPLOYEES / DEPARTMENTS
+   ================================================================ */
+function renderEmployeesView(){
+  renderDeptTable();
+  const filt = document.getElementById('empDeptFilter');
+  filt.innerHTML = '<option value="">সব ডিপার্টমেন্ট</option>' + DEPTS.map(d=>`<option value="${d.code}">${d.code}</option>`).join('');
+  renderEmpTable();
+}
+function renderDeptTable(){
+  const rows = DEPTS.map((d,i)=>{
+    const deptEmps = EMPLOYEES.filter(e=>e.deptCode===d.code);
+    let o=0,l=0;
+    deptEmps.forEach(e=>{ if(classifyOfficerLabour(e.designation)==='officer') o++; else l++; });
+    return `
+    <tr data-i="${i}">
+      <td class="mono">${d.code}</td>
+      <td class="mono">${o}</td>
+      <td class="mono">${l}</td>
+      <td class="mono"><b>${o+l}</b></td>
+      <td><input class="cell" type="text" data-field="label" value="${d.label||''}" style="text-align:right;"></td>
+      <td><select class="cell" data-field="factory" style="width:100px;">
+        ${FACTORIES.map(f=>`<option value="${f}" ${d.factory===f?'selected':''}>${f}</option>`).join('')}
+      </select></td>
+      <td><button class="icon-btn" data-del="${i}">✕</button></td>
+    </tr>`;
+  }).join('');
+  document.getElementById('deptTable').innerHTML = `
+    <thead><tr><th>${t('কোড', 'Code', '代码')}</th><th>${t('অফিসার', 'Officer', '职员')}</th><th>${t('লেবার', 'Labour', '劳工')}</th><th>${t('মোট', 'Total', '总计')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('ফ্যাক্টরি', 'Factory', '工厂')}</th><th></th></tr></thead><tbody>${rows}</tbody>`;
+  document.querySelectorAll('#deptTable input.cell, #deptTable select.cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const i = Number(e.target.closest('tr').dataset.i);
+      DEPTS[i][e.target.dataset.field] = e.target.value;
+      saveSync(LS.depts, DEPTS);
+    });
+  });
+  document.querySelectorAll('#deptTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      if(!confirm('এই ডিপার্টমেন্ট মুছে ফেলবেন? / Delete this department?')) return;
+      DEPTS.splice(Number(e.target.dataset.del),1); saveSync(LS.depts, DEPTS); renderDeptTable();
+    });
+  });
+}
+document.getElementById('addDeptBtn').addEventListener('click', ()=>{
+  const code = prompt('নতুন ডিপার্টমেন্ট কোড লিখুন / Enter new department code:');
+  if(!code) return;
+  DEPTS.push({id:uid(), code, label:code, factory:FACTORIES[0]});
+  saveSync(LS.depts, DEPTS); renderDeptTable();
+});
+
+function renderEmpTable(){
+  const filter = document.getElementById('empDeptFilter').value;
+  const search = document.getElementById('empSearchBox').value.trim().toLowerCase();
+  const list = EMPLOYEES.filter(e=>{
+    if(filter && e.deptCode!==filter) return false;
+    if(search && !(String(e.name).toLowerCase().includes(search) || String(e.empId).toLowerCase().includes(search))) return false;
+    return true;
+  });
+
+  let officerCnt=0, labourCnt=0;
+  list.forEach(e=>{ if(classifyOfficerLabour(e.designation)==='officer') officerCnt++; else labourCnt++; });
+  document.getElementById('empSumTotal').textContent = list.length;
+  document.getElementById('empSumOfficer').textContent = officerCnt;
+  document.getElementById('empSumLabour').textContent = labourCnt;
+
+  const rows = list.map((e,i)=>`
+    <tr data-id="${e.id}">
+      <td class="mono">${i+1}</td>
+      <td><input class="cell" type="text" data-field="name" value="${e.name}" style="text-align:right;"></td>
+      <td><input class="cell" type="text" data-field="empId" value="${e.empId||''}" style="width:80px;"></td>
+      <td><input class="cell" type="text" data-field="designation" value="${e.designation||''}" style="text-align:right;"></td>
+      <td><select class="cell" data-field="deptCode" style="width:130px;">
+        ${DEPTS.map(d=>`<option value="${d.code}" ${e.deptCode===d.code?'selected':''}>${d.code}</option>`).join('')}
+      </select></td>
+      <td><button class="icon-btn" data-del="${e.id}">✕</button></td>
+    </tr>`).join('');
+  document.getElementById('empTable').innerHTML = `
+    <thead><tr><th>${t('ক্রমিক', 'No.', '序号')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('আইডি', 'ID', '工号')}</th><th>${t('পদবি', 'Designation', '职位')}</th><th>${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th><th></th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:#999;">কোনো এমপ্লয়ি নেই / No employees</td></tr>'}</tbody>`;
+  document.querySelectorAll('#empTable input.cell, #empTable select.cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const id = e.target.closest('tr').dataset.id;
+      const emp = EMPLOYEES.find(x=>x.id===id);
+      emp[e.target.dataset.field] = e.target.value;
+      saveSync(LS.employees, EMPLOYEES);
+    });
+  });
+  document.querySelectorAll('#empTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      if(!confirm('এই এমপ্লয়ি মুছে ফেলবেন? / Delete this employee?')) return;
+      EMPLOYEES = EMPLOYEES.filter(x=>x.id!==e.target.dataset.del);
+      saveSync(LS.employees, EMPLOYEES); renderEmpTable();
+    });
+  });
+}
+document.getElementById('empDeptFilter').addEventListener('change', renderEmpTable);
+document.getElementById('empSearchBox').addEventListener('input', renderEmpTable);
+document.getElementById('addEmpBtn').addEventListener('click', ()=>{
+  const name = prompt('এমপ্লয়ির নাম লিখুন / Enter employee name:');
+  if(!name) return;
+  const deptCode = document.getElementById('empDeptFilter').value || (DEPTS[0]&&DEPTS[0].code) || '';
+  EMPLOYEES.push({id:uid(), name, empId:'', designation:'', deptCode});
+  saveSync(LS.employees, EMPLOYEES); renderEmpTable();
+});
+
+/* ================================================================
+   SETTINGS
+   ================================================================ */
+/* ================================================================
+   NOTES — Events/Program Log, Daily Tasks, Policies & Rules
+   ================================================================ */
+const EVENT_TYPES = ['দুর্ঘটনা/Incident','রক্ষণাবেক্ষণ/Maintenance','ভিজিট/Visit','অডিট/Audit','প্রোগ্রাম/Program','অন্যান্য/Other'];
+const TASK_PRIORITIES = ['high','medium','low'];
+const TASK_STATUSES = ['pending','inprogress','done'];
+
+function priorityLabel(p){ return {high:t('উচ্চ', 'High', '高'), medium:t('মধ্যম', 'Medium', '中'), low:t('নিম্ন', 'Low', '低')}[p] || p; }
+function taskStatusLabel(s){ return {pending:t('বাকি', 'Pending', '待处理'), inprogress:t('চলমান', 'In Progress', '进行中'), done:t('সম্পন্ন', 'Done', '已完成')}[s] || s; }
+function isOverdue(task){ return task.status!=='done' && task.deadline && task.deadline < todayStr(); }
+
+function renderNotesView(){
+  document.querySelectorAll('#notesTabs .pill').forEach(p=>{
+    p.classList.toggle('active', p.dataset.tab===(window.__notesActiveTab||'events'));
+  });
+  ['events','tasks','policies'].forEach(tab=>{
+    document.getElementById('notesTab-'+tab).style.display = (tab===(window.__notesActiveTab||'events'))?'block':'none';
+  });
+  renderEventsTable();
+  renderTasksTable();
+  renderPoliciesList();
+}
+document.getElementById('notesTabs').addEventListener('click', e=>{
+  const btn = e.target.closest('.pill'); if(!btn) return;
+  window.__notesActiveTab = btn.dataset.tab;
+  renderNotesView();
+});
+
+/* ---------------- EVENTS ---------------- */
+function renderEventsTable(){
+  const typeSel = document.getElementById('eventTypeFilter');
+  typeSel.innerHTML = `<option value="">${t('সব ধরন', 'All Types', '所有类型')}</option>` +
+    EVENT_TYPES.map(tp=>`<option value="${tp}">${t(tp.split('/')[0],tp.split('/')[1])}</option>`).join('');
+
+  const search = document.getElementById('eventSearchBox').value.trim().toLowerCase();
+  const typeFilter = typeSel.value;
+  const list = EVENTS.filter(e=>{
+    if(typeFilter && e.type!==typeFilter) return false;
+    if(search && !((e.title||'').toLowerCase().includes(search) || (e.description||'').toLowerCase().includes(search))) return false;
+    return true;
+  }).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+
+  const rows = list.map(ev=>{
+    const idx = EVENTS.indexOf(ev);
+    return `<tr data-id="${ev.id}">
+      <td><input class="cell" type="date" data-field="date" value="${ev.date||''}" style="width:130px;"></td>
+      <td><select class="cell" data-field="type" style="width:150px;">
+        ${EVENT_TYPES.map(tp=>`<option value="${tp}" ${ev.type===tp?'selected':''}>${t(tp.split('/')[0],tp.split('/')[1])}</option>`).join('')}
+      </select></td>
+      <td><select class="cell" data-field="department" style="width:120px;">
+        <option value="">${t('সাধারণ', 'General', '一般')}</option>
+        ${DEPTS.map(d=>`<option value="${d.code}" ${ev.department===d.code?'selected':''}>${d.code}</option>`).join('')}
+      </select></td>
+      <td><input class="cell" type="text" data-field="title" value="${(ev.title||'').replace(/"/g,'&quot;')}" style="width:160px;text-align:right;"></td>
+      <td><textarea class="cell" data-field="description" rows="2" style="width:220px;text-align:right;resize:vertical;">${ev.description||''}</textarea></td>
+      <td><select class="cell" data-field="status" style="width:100px;">
+        <option value="open" ${ev.status==='open'?'selected':''}>${t('চলমান', 'Open', '未处理')}</option>
+        <option value="closed" ${ev.status==='closed'?'selected':''}>${t('সমাধান হয়েছে', 'Closed', '已处理')}</option>
+      </select></td>
+      <td><button class="icon-btn" data-del="${ev.id}">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('eventsTable').innerHTML = `
+    <thead><tr>
+      <th>${t('তারিখ', 'Date', '日期')}</th><th>${t('ধরন', 'Type', '类型')}</th><th>${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th>
+      <th>${t('শিরোনাম', 'Title', '标题')}</th><th>${t('বিবরণ', 'Description', '描述')}</th><th>${t('স্ট্যাটাস', 'Status', '状态')}</th><th></th>
+    </tr></thead>
+    <tbody>${rows || `<tr><td colspan="7" style="text-align:center;color:#999;">${t('কোনো ঘটনা নেই', 'No events yet', '暂无事件记录')}</td></tr>`}</tbody>`;
+
+  document.querySelectorAll('#eventsTable .cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const id = e.target.closest('tr').dataset.id;
+      const ev = EVENTS.find(x=>x.id===id);
+      ev[e.target.dataset.field] = e.target.value;
+      saveSync(LS.events, EVENTS);
+    });
+  });
+  document.querySelectorAll('#eventsTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      if(!confirm(t('এই ঘটনা মুছে ফেলবেন?', 'Delete this event?', '删除此事件？'))) return;
+      EVENTS = EVENTS.filter(x=>x.id!==e.target.dataset.del);
+      saveSync(LS.events, EVENTS);
+      renderEventsTable();
+    });
+  });
+}
+document.getElementById('eventSearchBox').addEventListener('input', renderEventsTable);
+document.getElementById('eventTypeFilter').addEventListener('change', renderEventsTable);
+document.getElementById('eventPrintBtn').addEventListener('click', ()=> printCurrentView(t('ঘটনা / প্রোগ্রাম লগ', 'Event / Program Log', '事件/活动日志')));
+document.getElementById('addEventBtn').addEventListener('click', ()=>{
+  EVENTS.unshift({id:uid(), date:todayStr(), type:EVENT_TYPES[0], department:'', title:'', description:'', status:'open'});
+  saveSync(LS.events, EVENTS);
+  renderEventsTable();
+});
+
+/* ---------------- TASKS ---------------- */
+function renderTasksTable(){
+  const statusSel = document.getElementById('taskStatusFilter');
+  statusSel.innerHTML = `<option value="">${t('সব স্ট্যাটাস', 'All Status', '所有状态')}</option>` +
+    TASK_STATUSES.map(s=>`<option value="${s}">${taskStatusLabel(s)}</option>`).join('');
+
+  const search = document.getElementById('taskSearchBox').value.trim().toLowerCase();
+  const statusFilter = statusSel.value;
+  const list = TASKS.filter(tk=>{
+    if(statusFilter && tk.status!==statusFilter) return false;
+    if(search && !((tk.title||'').toLowerCase().includes(search) || (tk.responsible||'').toLowerCase().includes(search))) return false;
+    return true;
+  }).sort((a,b)=> (a.deadline||'9999').localeCompare(b.deadline||'9999'));
+
+  const rows = list.map(tk=>{
+    const overdue = isOverdue(tk);
+    return `<tr data-id="${tk.id}" style="${overdue?'background:#fdeceb;':''}">
+      <td><input class="cell" type="text" data-field="title" value="${(tk.title||'').replace(/"/g,'&quot;')}" style="width:180px;text-align:right;"></td>
+      <td><input class="cell" type="text" data-field="responsible" value="${(tk.responsible||'').replace(/"/g,'&quot;')}" style="width:130px;text-align:right;" placeholder="${t('দায়িত্বশীল', 'Responsible', '负责人')}"></td>
+      <td><input class="cell" type="date" data-field="deadline" value="${tk.deadline||''}" style="width:130px;"></td>
+      <td><select class="cell" data-field="priority" style="width:90px;">
+        ${TASK_PRIORITIES.map(p=>`<option value="${p}" ${tk.priority===p?'selected':''}>${priorityLabel(p)}</option>`).join('')}
+      </select></td>
+      <td><select class="cell" data-field="status" style="width:100px;">
+        ${TASK_STATUSES.map(s=>`<option value="${s}" ${tk.status===s?'selected':''}>${taskStatusLabel(s)}</option>`).join('')}
+      </select>${overdue?`<div class="small" style="color:var(--red);font-weight:600;">${t('মেয়াদোত্তীর্ণ', 'Overdue', '逾期')}</div>`:''}</td>
+      <td><button class="icon-btn" data-del="${tk.id}">✕</button></td>
+    </tr>`;
+  }).join('');
+
+  document.getElementById('tasksTable').innerHTML = `
+    <thead><tr>
+      <th>${t('কাজ', 'Task', '任务')}</th><th>${t('দায়িত্বশীল', 'Responsible', '负责人')}</th><th>${t('ডেডলাইন', 'Deadline', '截止日期')}</th>
+      <th>${t('প্রায়োরিটি', 'Priority', '优先级')}</th><th>${t('স্ট্যাটাস', 'Status', '状态')}</th><th></th>
+    </tr></thead>
+    <tbody>${rows || `<tr><td colspan="6" style="text-align:center;color:#999;">${t('কোনো টাস্ক নেই', 'No tasks yet', '暂无任务')}</td></tr>`}</tbody>`;
+
+  document.querySelectorAll('#tasksTable .cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const id = e.target.closest('tr').dataset.id;
+      const tk = TASKS.find(x=>x.id===id);
+      tk[e.target.dataset.field] = e.target.value;
+      saveSync(LS.tasks, TASKS);
+      if(e.target.dataset.field==='status' || e.target.dataset.field==='deadline') renderTasksTable();
+    });
+  });
+  document.querySelectorAll('#tasksTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      if(!confirm(t('এই টাস্ক মুছে ফেলবেন?', 'Delete this task?', '删除此任务？'))) return;
+      TASKS = TASKS.filter(x=>x.id!==e.target.dataset.del);
+      saveSync(LS.tasks, TASKS);
+      renderTasksTable();
+    });
+  });
+}
+document.getElementById('taskSearchBox').addEventListener('input', renderTasksTable);
+document.getElementById('taskStatusFilter').addEventListener('change', renderTasksTable);
+document.getElementById('taskPrintBtn').addEventListener('click', ()=> printCurrentView(t('ডেইলি টাস্ক ও দায়িত্ব', 'Daily Tasks & Responsibility', '每日任务与职责')));
+document.getElementById('addTaskBtn').addEventListener('click', ()=>{
+  TASKS.unshift({id:uid(), title:'', responsible:'', deadline:todayStr(), priority:'medium', status:'pending'});
+  saveSync(LS.tasks, TASKS);
+  renderTasksTable();
+});
+
+/* ---------------- POLICIES ---------------- */
+function renderPoliciesList(){
+  const search = document.getElementById('policySearchBox').value.trim().toLowerCase();
+  const list = POLICIES.filter(p=>{
+    if(!search) return true;
+    return (p.title||'').toLowerCase().includes(search) || (p.category||'').toLowerCase().includes(search) || (p.content||'').toLowerCase().includes(search);
+  });
+
+  document.getElementById('policiesList').innerHTML = list.map(p=>`
+    <div class="card" data-id="${p.id}" style="border-top:3px solid var(--amber);">
+      <div class="form-row" style="margin-bottom:8px;">
+        <div class="field" style="flex:1;min-width:150px;">
+          <label>${t('ক্যাটাগরি', 'Category', '类别')}</label>
+          <input class="cell policy-field" type="text" data-field="category" value="${(p.category||'').replace(/"/g,'&quot;')}" style="border:1px solid var(--line);">
+        </div>
+        <div class="field" style="flex:2;min-width:200px;">
+          <label>${t('শিরোনাম', 'Title', '标题')}</label>
+          <input class="cell policy-field" type="text" data-field="title" value="${(p.title||'').replace(/"/g,'&quot;')}" style="border:1px solid var(--line);">
+        </div>
+        <div class="field" style="justify-content:flex-end;">
+          <label>&nbsp;</label>
+          <button class="btn btn-danger btn-sm" data-del="${p.id}">${t('মুছুন', 'Delete', '删除')}</button>
+        </div>
+      </div>
+      <label class="small">${t('বিবরণ', 'Content', '内容')}</label>
+      <textarea class="cell policy-field" data-field="content" rows="3" style="width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 10px;text-align:right;resize:vertical;">${p.content||''}</textarea>
+      <div class="small" style="margin-top:6px;">${t('সর্বশেষ আপডেট', 'Last updated', '最后更新')}: ${p.updatedAt||''}</div>
+    </div>`).join('') || `<div class="empty">${t('কোনো পলিসি নেই', 'No policies yet', '暂无政策')}</div>`;
+
+  document.querySelectorAll('.policy-field').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const id = e.target.closest('[data-id]').dataset.id;
+      const p = POLICIES.find(x=>x.id===id);
+      p[e.target.dataset.field] = e.target.value;
+      p.updatedAt = todayStr();
+      saveSync(LS.policies, POLICIES);
+    });
+  });
+  document.querySelectorAll('#policiesList [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      if(!confirm(t('এই পলিসি মুছে ফেলবেন?', 'Delete this policy?', '删除此政策？'))) return;
+      POLICIES = POLICIES.filter(x=>x.id!==e.target.dataset.del);
+      saveSync(LS.policies, POLICIES);
+      renderPoliciesList();
+    });
+  });
+}
+document.getElementById('policySearchBox').addEventListener('input', renderPoliciesList);
+document.getElementById('policyPrintBtn').addEventListener('click', ()=> printCurrentView(t('পলিসি ও নিয়মনীতি', 'Policies & Rules', '政策与规章')));
+document.getElementById('addPolicyBtn').addEventListener('click', ()=>{
+  POLICIES.unshift({id:uid(), category:'', title:'', content:'', updatedAt:todayStr()});
+  saveSync(LS.policies, POLICIES);
+  renderPoliciesList();
+});
+
+function renderSettings(){
+  renderKpiMasterTable();
+  const raw = localStorage.getItem(FB_CONFIG_KEY);
+  document.getElementById('fbConfigInput').value = raw ? raw : '';
+  setFbStatus(fbReady ? '🔥 Firebase সংযুক্ত — লাইভ সিঙ্ক চালু আছে / Connected — live sync active' : (raw ? 'কনফিগ সেভ আছে কিন্তু সংযোগ যাচাই হয়নি — পাতা রিলোড করুন / Config saved but not yet verified — reload the page' : 'সংযুক্ত নয় — শুধু এই ডিভাইসে ডাটা সেভ হচ্ছে / Not connected — data saved on this device only'), fbReady ? true : null);
+}
+function renderKpiMasterTable(){
+  const rows = KPI_MASTER.map((k,i)=>`
+    <tr data-i="${i}">
+      <td>${i+1}</td>
+      <td><input class="cell" type="text" data-field="label" value="${k.label}" style="width:100%;text-align:right;"></td>
+      <td><button class="icon-btn" data-del="${i}">✕</button></td>
+    </tr>`).join('');
+  document.getElementById('kpiMasterTable').innerHTML = `
+    <thead><tr><th>${t('ক্র.', 'No.', '序号')}</th><th>${t('ক্রাইটেরিয়া', 'Criteria', '标准')}</th><th></th></tr></thead><tbody>${rows}</tbody>`;
+  document.querySelectorAll('#kpiMasterTable input.cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const i = Number(e.target.closest('tr').dataset.i);
+      KPI_MASTER[i].label = e.target.value; saveSync(LS.kpiMaster, KPI_MASTER);
+    });
+  });
+  document.querySelectorAll('#kpiMasterTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      KPI_MASTER.splice(Number(e.target.dataset.del),1); saveSync(LS.kpiMaster, KPI_MASTER); renderKpiMasterTable();
+    });
+  });
+}
+document.getElementById('addKpiMasterBtn').addEventListener('click', ()=>{
+  const label = prompt('নতুন ক্রাইটেরিয়া লিখুন / Enter new criteria:'); if(!label) return;
+  KPI_MASTER.push({id:uid(), label}); saveSync(LS.kpiMaster, KPI_MASTER); renderKpiMasterTable();
+});
+
+document.getElementById('exportBtn').addEventListener('click', ()=>{
+  const data = {depts:DEPTS, employees:EMPLOYEES, entries:ENTRIES, kpiMaster:KPI_MASTER, dataCats:DATA_CATS,
+    events:EVENTS, tasks:TASKS, policies:POLICIES, exportedAt:new Date().toISOString()};
+  const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
+  const a = document.createElement('a');
+  a.href = URL.createObjectURL(blob);
+  a.download = 'ewr-backup-'+todayStr()+'.json';
+  a.click();
+  toast('✓ ব্যাকআপ ডাউনলোড হয়েছে / Backup downloaded');
+});
+document.getElementById('importBtnLabel').addEventListener('click', ()=> document.getElementById('importFile').click());
+document.getElementById('importFile').addEventListener('change', e=>{
+  const file = e.target.files[0]; if(!file) return;
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const data = JSON.parse(ev.target.result);
+      if(data.depts) { DEPTS = data.depts; saveSync(LS.depts, DEPTS); }
+      if(data.employees) { EMPLOYEES = data.employees; saveSync(LS.employees, EMPLOYEES); }
+      if(data.entries) { ENTRIES = data.entries; saveSync(LS.entries, ENTRIES); }
+      if(data.kpiMaster) { KPI_MASTER = data.kpiMaster; saveSync(LS.kpiMaster, KPI_MASTER); }
+      if(data.dataCats) { DATA_CATS = data.dataCats; saveSync(LS.dataCatMaster, DATA_CATS); }
+      if(data.events) { EVENTS = data.events; saveSync(LS.events, EVENTS); }
+      if(data.tasks) { TASKS = data.tasks; saveSync(LS.tasks, TASKS); }
+      if(data.policies) { POLICIES = data.policies; saveSync(LS.policies, POLICIES); }
+      toast('✓ ইমপোর্ট সম্পন্ন হয়েছে / Import complete');
+      showView('dashboard');
+    }catch(err){ alert('ফাইল পড়তে সমস্যা হয়েছে / Could not read file: '+err.message); }
+  };
+  reader.readAsText(file);
+});
+
+/* ---------------- EXCEL EXPORT / IMPORT ---------------- */
+function exportToExcel(){
+  if(typeof XLSX==='undefined'){ alert(t('Excel লাইব্রেরি লোড হয়নি — ইন্টারনেট সংযোগ দেখুন', 'Excel library did not load — check your internet connection', 'Excel库未能加载 — 请检查网络连接')); return; }
+  const wb = XLSX.utils.book_new();
+
+  // Departments
+  const deptRows = DEPTS.map(d=>({Code:d.code, Name:d.label||d.code, Factory:d.factory}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(deptRows), 'Departments');
+
+  // Employees
+  const empRows = EMPLOYEES.map(e=>({Name:e.name, ID:e.empId, Designation:e.designation, Department:e.deptCode}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(empRows), 'Employees');
+
+  // Daily summary (flattened entries)
+  const dailyRows = Object.values(ENTRIES).map(e=>{
+    const c = attCounts(e); const k = kpiAvg(e);
+    const dept = deptByCode(e.deptCode);
+    let forkHrs = 0; (e.forklift||[]).forEach(f=> forkHrs += Number(f.hours)||0);
+    return {Date:e.date, Department:e.deptCode, Factory:dept?dept.factory:'', Present:c.present, Leave:c.leave,
+      Absent:c.absent, OT_Hours:c.otHours, KPI_Percent:k, Forklift_Hours:forkHrs, Saved_At:e.savedAt||''};
+  }).sort((a,b)=> (b.Date||'').localeCompare(a.Date||''));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyRows), 'Daily Summary');
+
+  // KPI criteria master
+  const kpiRows = KPI_MASTER.map(k=>({Criteria:k.label}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpiRows), 'KPI Criteria');
+
+  // Notes: events / tasks / policies
+  const eventRows = EVENTS.map(e=>({Date:e.date, Type:e.type, Department:e.department, Title:e.title, Description:e.description, Status:e.status}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(eventRows), 'Events Log');
+
+  const taskRows = TASKS.map(tk=>({Task:tk.title, Responsible:tk.responsible, Deadline:tk.deadline, Priority:tk.priority, Status:tk.status}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(taskRows), 'Tasks');
+
+  const policyRows = POLICIES.map(p=>({Category:p.category, Title:p.title, Content:p.content, Updated:p.updatedAt}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(policyRows), 'Policies');
+
+  // Hidden raw-data sheet: complete JSON snapshot, used for perfect round-trip import
+  const rawJson = JSON.stringify({depts:DEPTS, employees:EMPLOYEES, entries:ENTRIES, kpiMaster:KPI_MASTER,
+    dataCats:DATA_CATS, events:EVENTS, tasks:TASKS, policies:POLICIES, exportedAt:new Date().toISOString()});
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['_RawData'],[rawJson]]), '_RawData');
+
+  XLSX.writeFile(wb, 'ewr-backup-'+todayStr()+'.xlsx');
+  toast('✓ Excel '+t('ব্যাকআপ ডাউনলোড হয়েছে', 'backup downloaded', '备份已下载'));
+}
+
+function importFromExcel(file){
+  if(typeof XLSX==='undefined'){ alert(t('Excel লাইব্রেরি লোড হয়নি — ইন্টারনেট সংযোগ দেখুন', 'Excel library did not load — check your internet connection', 'Excel库未能加载 — 请检查网络连接')); return; }
+  const reader = new FileReader();
+  reader.onload = ev=>{
+    try{
+      const wb = XLSX.read(ev.target.result, {type:'array'});
+      if(!wb.SheetNames.includes('_RawData')){
+        alert(t('এই Excel ফাইলে অ্যাপের ডাটা নেই — শুধু এই অ্যাপ থেকে এক্সপোর্ট করা Excel ফাইল ইমপোর্ট করা যাবে', 'This Excel file has no app data — only Excel files exported from this app can be imported', '此Excel文件不包含应用数据 — 只能导入由本应用导出的Excel文件'));
+        return;
+      }
+      const sheet = wb.Sheets['_RawData'];
+      const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
+      const rawJson = rows[1] && rows[1][0];
+      const data = JSON.parse(rawJson);
+      if(data.depts) { DEPTS = data.depts; saveSync(LS.depts, DEPTS); }
+      if(data.employees) { EMPLOYEES = data.employees; saveSync(LS.employees, EMPLOYEES); }
+      if(data.entries) { ENTRIES = data.entries; saveSync(LS.entries, ENTRIES); }
+      if(data.kpiMaster) { KPI_MASTER = data.kpiMaster; saveSync(LS.kpiMaster, KPI_MASTER); }
+      if(data.dataCats) { DATA_CATS = data.dataCats; saveSync(LS.dataCatMaster, DATA_CATS); }
+      if(data.events) { EVENTS = data.events; saveSync(LS.events, EVENTS); }
+      if(data.tasks) { TASKS = data.tasks; saveSync(LS.tasks, TASKS); }
+      if(data.policies) { POLICIES = data.policies; saveSync(LS.policies, POLICIES); }
+      toast('✓ Excel '+t('ইমপোর্ট সম্পন্ন হয়েছে', 'import complete', '导入完成'));
+      showView('dashboard');
+    }catch(err){
+      alert(t('Excel ফাইল পড়তে সমস্যা হয়েছে: ', 'Could not read Excel file: ', '无法读取Excel文件：')+err.message);
+    }
+  };
+  reader.readAsArrayBuffer(file);
+}
+document.getElementById('exportExcelBtn').addEventListener('click', exportToExcel);
+document.getElementById('importExcelBtnLabel').addEventListener('click', ()=> document.getElementById('importExcelFile').click());
+document.getElementById('importExcelFile').addEventListener('change', e=>{
+  const file = e.target.files[0]; if(!file) return;
+  importFromExcel(file);
+});
+
+document.getElementById('fbConnectBtn').addEventListener('click', ()=>{
+  const raw = document.getElementById('fbConfigInput').value.trim();
+  if(!raw){ setFbStatus('আগে Firebase config JSON পেস্ট করুন / Paste the Firebase config JSON first', false); return; }
+  let cfg;
+  try{ cfg = JSON.parse(raw); }
+  catch(e){ setFbStatus('Config JSON ঠিক নয় — Firebase Console থেকে পুরো অবজেক্টটা কপি করে পেস্ট করুন / Invalid JSON — copy the full object from Firebase Console', false); return; }
+  if(!cfg.databaseURL){
+    setFbStatus('এই config-এ databaseURL নেই — Realtime Database চালু করে আবার কনফিগ কপি করুন / No databaseURL — enable Realtime Database and copy the config again', false);
+    return;
+  }
+  localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg));
+  setFbStatus('সংযুক্ত হচ্ছে... / Connecting...', null);
+  try{
+    if(fbApp){ toast('নতুন কনফিগ সেভ হয়েছে — পাতাটি রিলোড করুন / New config saved — reload the page'); return; }
+    tryInitFirebase();
+    toast('✓ Firebase-এর সাথে সংযুক্ত হয়েছে / Connected to Firebase');
+  }catch(err){
+    setFbStatus('সংযোগ ব্যর্থ / Connection failed: '+err.message, false);
+  }
+});
+document.getElementById('fbDisconnectBtn').addEventListener('click', ()=>{
+  if(!confirm('Firebase সংযোগ বিচ্ছিন্ন করবেন? এরপর থেকে ডাটা শুধু এই ডিভাইসেই সেভ হবে। / Disconnect Firebase? Data will then be saved on this device only.')) return;
+  localStorage.removeItem(FB_CONFIG_KEY);
+  document.getElementById('fbConfigInput').value = '';
+  setFbStatus('সংযোগ বিচ্ছিন্ন হয়েছে — পাতাটি রিলোড করুন যাতে সম্পূর্ণভাবে অফলাইন মোডে যায় / Disconnected — reload the page to go fully offline', null);
+  toast('Firebase সংযোগ মুছে ফেলা হয়েছে / Firebase connection removed');
+});
+
+document.getElementById('wipeBtn').addEventListener('click', ()=>{
+  if(!confirm('আপনি কি নিশ্চিত? সব সেভ করা এন্ট্রি মুছে যাবে! / Are you sure? All saved entries will be deleted!')) return;
+  if(!confirm('এটি ফিরিয়ে আনা যাবে না। আবার নিশ্চিত করুন। / This cannot be undone. Please confirm again.')) return;
+  localStorage.removeItem(LS.entries);
+  ENTRIES = {}; saveSync(LS.entries, ENTRIES);
+  toast('সব এন্ট্রি ডাটা মুছে ফেলা হয়েছে / All entry data has been deleted');
+  showView('dashboard');
+});
+
+/* ================= INIT ================= */
+document.getElementById('entryDate').value = todayStr();
+applyStaticLanguage();
+showView('dashboard');
+tryInitFirebase();
+</script>
+</body>
+</html>
