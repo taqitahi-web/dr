@@ -504,6 +504,7 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
         <button class="pill active" data-tab="events"><span data-bn="ঘটনা / প্রোগ্রাম লগ" data-en="Event / Program Log" data-zh="事件/活动日志">ঘটনা / প্রোগ্রাম লগ</span></button>
         <button class="pill" data-tab="tasks"><span data-bn="ডেইলি টাস্ক ও দায়িত্ব" data-en="Daily Tasks &amp; Responsibility" data-zh="每日任务与职责">ডেইলি টাস্ক ও দায়িত্ব</span></button>
         <button class="pill" data-tab="policies"><span data-bn="পলিসি ও নিয়মনীতি" data-en="Policies &amp; Rules" data-zh="政策与规章">পলিসি ও নিয়মনীতি</span></button>
+        <button class="pill" data-tab="punishments"><span data-bn="পানিশমেন্ট / ওয়ার্নিং লেটার" data-en="Punishment / Warning Letters" data-zh="处罚/警告信">পানিশমেন্ট / ওয়ার্নিং লেটার</span></button>
       </div>
 
       <!-- EVENTS TAB -->
@@ -541,6 +542,22 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
             <button class="btn btn-amber btn-sm" id="addPolicyBtn">+ <span data-bn="নতুন পলিসি যোগ করুন" data-en="Add Policy" data-zh="添加政策">নতুন পলিসি যোগ করুন</span></button>
           </div>
           <div id="policiesList"></div>
+        </div>
+      </div>
+
+      <!-- PUNISHMENTS / WARNING LETTERS TAB -->
+      <div id="notesTab-punishments" style="display:none;">
+        <div class="card">
+          <h3><span class="num">◆</span><span data-bn="সারাংশ — কার কয়টা ওয়ার্নিং লেটার আছে" data-en="Summary — Warning Letters per Employee" data-zh="汇总——每位员工的警告信数量">সারাংশ — কার কয়টা ওয়ার্নিং লেটার আছে</span></h3>
+          <div class="tbl-wrap"><table id="punishSummaryTable"></table></div>
+        </div>
+        <div class="card">
+          <div class="toolbar">
+            <input type="text" id="punishSearchBox" data-bn="🔍 খুঁজুন..." data-en="🔍 Search..." data-zh="🔍 搜索..." data-ph="1" placeholder="🔍 খুঁজুন..." style="min-width:180px;padding:8px 10px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+            <button class="btn btn-ghost btn-sm" id="punishPrintBtn">🖨 <span data-bn="প্রিন্ট" data-en="Print" data-zh="打印">প্রিন্ট</span></button>
+            <button class="btn btn-amber btn-sm" id="addPunishBtn">+ <span data-bn="নতুন এন্ট্রি যোগ করুন" data-en="Add Entry" data-zh="添加记录">নতুন এন্ট্রি যোগ করুন</span></button>
+          </div>
+          <div class="tbl-wrap"><table id="punishTable"></table></div>
         </div>
       </div>
     </div>
@@ -610,6 +627,20 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
   </div>
 </div>
 
+<div class="modal-backdrop" id="adminModalBackdrop">
+  <div class="modal-box">
+    <h3><span data-bn="অ্যাডমিন অ্যাক্সেস" data-en="Admin Access" data-zh="管理员权限">অ্যাডমিন অ্যাক্সেস</span></h3>
+    <div class="modal-sub" data-bn="এমপ্লয়ি ও ডিপার্টমেন্ট মেনু দেখতে/পরিবর্তন করতে অ্যাডমিন পাসওয়ার্ড দিন" data-en="Enter the admin password to view or change Employees & Departments" data-zh="请输入管理员密码以查看或修改「员工与部门」">এমপ্লয়ি ও ডিপার্টমেন্ট মেনু দেখতে/পরিবর্তন করতে অ্যাডমিন পাসওয়ার্ড দিন</div>
+    <label><span data-bn="অ্যাডমিন পাসওয়ার্ড" data-en="Admin Password" data-zh="管理员密码">অ্যাডমিন পাসওয়ার্ড</span></label>
+    <input type="password" id="adminModalPassword" placeholder="••••••" autocomplete="off">
+    <div class="modal-error" id="adminModalError"></div>
+    <div class="modal-actions">
+      <button class="btn btn-ghost" id="adminModalCancel"><span data-bn="বাতিল" data-en="Cancel" data-zh="取消">বাতিল</span></button>
+      <button class="btn btn-amber" id="adminModalConfirm">✓ <span data-bn="প্রবেশ করুন" data-en="Unlock" data-zh="解锁">প্রবেশ করুন</span></button>
+    </div>
+  </div>
+</div>
+
 <script>
 /* ======================================================================
    DAILY WORK REPORT & KPI — EPFBD
@@ -619,7 +650,7 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
 const LS = {
   depts:'ewr_depts', employees:'ewr_employees', entries:'ewr_entries',
   kpiMaster:'ewr_kpi_master', dataCatMaster:'ewr_data_cat_master',
-  events:'ewr_events', tasks:'ewr_tasks', policies:'ewr_policies'
+  events:'ewr_events', tasks:'ewr_tasks', policies:'ewr_policies', punishments:'ewr_punishments'
 };
 
 function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
@@ -633,7 +664,7 @@ const FB_CONFIG_KEY = 'ewr_firebase_config';
 const FB_PATHS = {
   [LS.depts]:'depts', [LS.employees]:'employees', [LS.entries]:'entries',
   [LS.kpiMaster]:'kpiMaster', [LS.dataCatMaster]:'dataCats',
-  [LS.events]:'events', [LS.tasks]:'tasks', [LS.policies]:'policies'
+  [LS.events]:'events', [LS.tasks]:'tasks', [LS.policies]:'policies', [LS.punishments]:'punishments'
 };
 let fbApp = null, fbDb = null, fbReady = false;
 let __suppressFbEcho = false; // avoid re-broadcasting a change we just received
@@ -701,6 +732,7 @@ function applyRemoteUpdate(lsKey, val){
   else if(lsKey===LS.events) EVENTS = val;
   else if(lsKey===LS.tasks) TASKS = val;
   else if(lsKey===LS.policies) POLICIES = val;
+  else if(lsKey===LS.punishments) PUNISHMENTS = val;
   // don't yank the entry form out from under someone mid-edit
   const active = document.querySelector('.nav button.active');
   if(active && active.dataset.view !== 'entry'){
@@ -1059,18 +1091,19 @@ const DEFAULT_POLICIES = [
   content:'যেকোনো দুর্ঘটনা, ক্ষতি, বা নিরাপত্তা সংক্রান্ত ঘটনা সাথে সাথে সুপারভাইজারকে জানাতে হবে এবং "নোট" মেনুর ঘটনা লগে এন্ট্রি দিতে হবে। / Any accident, damage, or safety-related incident must be reported to the supervisor immediately and logged in the Notes → Event Log.'},
 ];
 
-const MASTER_DATA_VERSION = 3; // bump this whenever DEFAULT_EMPLOYEES / DEFAULT_DEPTS / DEFAULT_KPI_ITEMS change
+const MASTER_DATA_VERSION = 4; // bump this whenever DEFAULT_EMPLOYEES / DEFAULT_DEPTS / DEFAULT_KPI_ITEMS change
 
 /* ---------------- init storage ---------------- */
 function initStorage(){
   if(!localStorage.getItem(LS.depts)) saveSync(LS.depts, DEFAULT_DEPTS.map(d=>({...d,id:uid()})));
-  if(!localStorage.getItem(LS.employees)) saveSync(LS.employees, DEFAULT_EMPLOYEES);
+  if(!localStorage.getItem(LS.employees)) saveSync(LS.employees, DEFAULT_EMPLOYEES.map(e=>({...e, status:e.status||'active'})));
   if(!localStorage.getItem(LS.entries)) saveSync(LS.entries, {});
   if(!localStorage.getItem(LS.kpiMaster)) saveSync(LS.kpiMaster, DEFAULT_KPI_ITEMS.map(t=>({id:uid(),label:t})));
   if(!localStorage.getItem(LS.dataCatMaster)) saveSync(LS.dataCatMaster, DEFAULT_DATA_CATS.slice());
   if(!localStorage.getItem(LS.events)) saveSync(LS.events, []);
   if(!localStorage.getItem(LS.tasks)) saveSync(LS.tasks, []);
   if(!localStorage.getItem(LS.policies)) saveSync(LS.policies, DEFAULT_POLICIES.map(p=>({id:uid(), ...p, updatedAt:todayStr()})));
+  if(!localStorage.getItem(LS.punishments)) saveSync(LS.punishments, []);
 
   // Migration: if this browser already had older master data saved (from a
   // previous version of this app), merge in any new departments/employees
@@ -1091,6 +1124,8 @@ function initStorage(){
       const k = empKey(e);
       if(!existingKeys.has(k)){ emps.push({...e}); existingKeys.add(k); }
     });
+    // every employee needs a status; default previously-saved records to Active
+    emps.forEach(e=>{ if(!e.status) e.status='active'; });
     saveSync(LS.employees, emps);
 
     // upgrade previously-saved KPI criteria labels to the new bilingual text
@@ -1117,6 +1152,7 @@ let DATA_CATS = load(LS.dataCatMaster, []);
 let EVENTS = load(LS.events, []);
 let TASKS = load(LS.tasks, []);
 let POLICIES = load(LS.policies, []);
+let PUNISHMENTS = load(LS.punishments, []);
 
 function entryKey(date, deptCode){ return date+'__'+deptCode; }
 function deptByCode(code){ return DEPTS.find(d=>d.code===code); }
@@ -1126,6 +1162,10 @@ function ratingLabel(r){ return {excellent:t('চমৎকার', 'Excellent', 
 /* ================= NAVIGATION ================= */
 const views = ['dashboard','entry','history','monthly','employees','notes','settings'];
 function showView(name){
+  if((name==='employees' || name==='settings') && !adminUnlocked){
+    openAdminModal(()=> showView(name));
+    return;
+  }
   const leavingEntry = document.getElementById('view-entry').style.display !== 'none';
   if(leavingEntry && name!=='entry' && formDirty){
     if(!confirm('ডেইলি এন্ট্রি ফর্মে সেভ না করা পরিবর্তন আছে — এগুলো বাদ দিয়ে অন্য পেজে যাবেন? / Unsaved changes in the entry form — discard and leave?')) return;
@@ -1172,14 +1212,15 @@ function allEntriesForDate(date){
   return Object.values(ENTRIES).filter(e=>e.date===date);
 }
 function attCounts(entry){
-  let present=0,leave=0,absent=0,otHours=0;
+  let present=0,leave=0,absent=0,otHours=0,warning=0;
   (entry.attendance||[]).forEach(r=>{
     present += Number(r.present)||0;
     leave += Number(r.leave)||0;
     absent += Number(r.absent)||0;
     otHours += Number(r.otHours)||0;
+    warning += Number(r.warning)||0;
   });
-  return {present,leave,absent,otHours};
+  return {present,leave,absent,otHours,warning};
 }
 function kpiAvg(entry){
   const rows = entry.kpi||[];
@@ -1330,6 +1371,8 @@ function renderKpiDeptChart(){
    DAILY ENTRY
    ================================================================ */
 let currentEntry = null;
+let adminUnlocked = false; // session-only; requires password again after page reload
+const ADMIN_PASSWORD = 'EPFBD';
 let formDirty = false;
 
 function renderEntryDeptOptions(){
@@ -1388,8 +1431,8 @@ function blankEntry(date, deptCode){
   const emps = EMPLOYEES.filter(e=>e.deptCode===deptCode);
   return {
     date, deptCode,
-    attendance: emps.map(e=>({empId:e.id, present:1, leave:0, absent:0, ot:'no', otQty:0, otHours:0, remarks:''})),
-    kpi: KPI_MASTER.map(k=>({itemId:k.id, label:k.label, rating:'good', remarks:''})),
+    attendance: emps.map(e=>({empId:e.id, present:1, leave:0, absent:0, ot:'no', otQty:0, otHours:0, warning:0, remarks:''})),
+    kpi: KPI_MASTER.map(k=>({itemId:k.id, label:k.label, status:'pending', rating:'good', remarks:'', adminComment:''})),
     dataEntry: DATA_CATS.map(c=>({category:c, qty:0, mis:'pending', excel:'pending', logbook:'pending', bincard:'pending'})),
     forklift: [],
     savedAt: null
@@ -1430,13 +1473,14 @@ function renderAttTable(){
           </select></td>
       <td><input class="cell" type="number" min="0" data-field="otQty" value="${r.otQty}" style="width:55px;"></td>
       <td><input class="cell" type="number" min="0" data-field="otHours" value="${r.otHours}" style="width:55px;"></td>
+      <td><input class="cell" type="number" min="0" data-field="warning" value="${r.warning||0}" style="width:55px;${(r.warning||0)>0?'color:var(--red);font-weight:700;':''}" title="${t('ওয়ার্নিং লেটার','Warning Letters','警告信')}"></td>
       <td><input class="cell" type="text" data-field="remarks" value="${r.remarks||''}" style="width:110px;text-align:right;"></td>
       <td><button class="icon-btn" data-del="${i}" title="মুছুন">✕</button></td>
     </tr>`;
   }).join('');
   document.getElementById('attTable').innerHTML = `
-    <thead><tr><th>${t('ক্র.', 'No.', '序号')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('পদবি', 'Designation', '职位')}</th><th>${t('উপস্থিত', 'Present', '出勤')}</th><th>${t('ছুটি', 'Leave', '请假')}</th><th>${t('অনুপস্থিত', 'Absent', '缺勤')}</th><th>${t('ওটি', 'OT', '加班')}</th><th>${t('ওটি সংখ্যা', 'OT Qty', '加班次数')}</th><th>${t('ওটি ঘণ্টা', 'OT Hrs', '加班小时')}</th><th>${t('মন্তব্য', 'Remarks', '备注')}</th><th></th></tr></thead>
-    <tbody>${rows || '<tr><td colspan="11" style="text-align:center;color:#999;">এই ডিপার্টমেন্টে কোনো এমপ্লয়ি নেই / No employees in this department — "এমপ্লয়ি ও ডিপার্টমেন্ট" থেকে যোগ করুন</td></tr>'}</tbody>`;
+    <thead><tr><th>${t('ক্র.', 'No.', '序号')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('পদবি', 'Designation', '职位')}</th><th>${t('উপস্থিত', 'Present', '出勤')}</th><th>${t('ছুটি', 'Leave', '请假')}</th><th>${t('অনুপস্থিত', 'Absent', '缺勤')}</th><th>${t('ওটি', 'OT', '加班')}</th><th>${t('ওটি সংখ্যা', 'OT Qty', '加班次数')}</th><th>${t('ওটি ঘণ্টা', 'OT Hrs', '加班小时')}</th><th>${t('ওয়ার্নিং লেটার','Warning','警告信')}</th><th>${t('মন্তব্য', 'Remarks', '备注')}</th><th></th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="12" style="text-align:center;color:#999;">এই ডিপার্টমেন্টে কোনো এমপ্লয়ি নেই / No employees in this department — "এমপ্লয়ি ও ডিপার্টমেন্ট" থেকে যোগ করুন</td></tr>'}</tbody>`;
 
   document.querySelectorAll('#attTable input.cell, #attTable select.cell').forEach(inp=>{
     inp.addEventListener('input', e=>{
@@ -1457,7 +1501,8 @@ function renderAttTable(){
 function updateAttSummary(){
   const c = attCounts(currentEntry);
   document.getElementById('attSummaryLine').textContent =
-    `${t('মোট', 'Total', '总计')}: ${t('উপস্থিত', 'Present', '出勤')} ${c.present} · ${t('ছুটি', 'Leave', '请假')} ${c.leave} · ${t('অনুপস্থিত', 'Absent', '缺勤')} ${c.absent} · ${t('ওটি ঘণ্টা', 'OT Hrs', '加班小时')} ${c.otHours}`;
+    `${t('মোট', 'Total', '总计')}: ${t('উপস্থিত', 'Present', '出勤')} ${c.present} · ${t('ছুটি', 'Leave', '请假')} ${c.leave} · ${t('অনুপস্থিত', 'Absent', '缺勤')} ${c.absent} · ${t('ওটি ঘণ্টা', 'OT Hrs', '加班小时')} ${c.otHours}` +
+    (c.warning>0 ? ` · ${t('ওয়ার্নিং লেটার','Warning Letters','警告信')} ${c.warning}` : '');
 }
 document.getElementById('addAttRow').addEventListener('click', ()=>{
   const code = currentEntry.deptCode;
@@ -1465,10 +1510,10 @@ document.getElementById('addAttRow').addEventListener('click', ()=>{
   if(!name) return;
   let emp = EMPLOYEES.find(e=>e.name===name && e.deptCode===code);
   if(!emp){
-    emp = {id:uid(), empId:'', name, designation:'', deptCode:code};
+    emp = {id:uid(), empId:'', name, designation:'', deptCode:code, status:'active'};
     EMPLOYEES.push(emp); saveSync(LS.employees, EMPLOYEES);
   }
-  currentEntry.attendance.push({empId:emp.id, present:1, leave:0, absent:0, ot:'no', otQty:0, otHours:0, remarks:''});
+  currentEntry.attendance.push({empId:emp.id, present:1, leave:0, absent:0, ot:'no', otQty:0, otHours:0, warning:0, remarks:''});
   renderAttTable();
 });
 document.getElementById('markAllPresentBtn').addEventListener('click', ()=>{
@@ -1507,38 +1552,72 @@ function renderFtyAttTable(){
 
 /* --- KPI table --- */
 function renderKpiTable(){
+  const locked = !adminUnlocked;
   const rows = currentEntry.kpi.map((r,i)=>`
     <tr data-i="${i}">
       <td>${i+1}</td>
-      <td style="text-align:right;max-width:340px;white-space:normal;">${r.label}</td>
+      <td style="text-align:right;max-width:300px;white-space:normal;">${r.label}</td>
       <td>
-        <select class="cell" data-field="rating" style="width:110px;">
-          <option value="excellent" ${r.rating==='excellent'?'selected':''}>${t('চমৎকার', 'Excellent', '优秀')}</option>
-          <option value="good" ${r.rating==='good'?'selected':''}>${t('ভালো', 'Good', '良好')}</option>
-          <option value="average" ${r.rating==='average'?'selected':''}>${t('মোটামুটি', 'Average', '一般')}</option>
-          <option value="poor" ${r.rating==='poor'?'selected':''}>${t('দুর্বল', 'Poor', '较差')}</option>
+        <select class="cell" data-field="status" style="width:100px;">
+          <option value="pending" ${(r.status||'pending')==='pending'?'selected':''}>${t('পেন্ডিং', 'Pending', '待处理')}</option>
+          <option value="done" ${r.status==='done'?'selected':''}>${t('হয়ে গেছে', 'Done', '已完成')}</option>
         </select>
       </td>
+      <td>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <select class="cell admin-field" data-field="rating" style="width:100px;" ${locked?'disabled':''}>
+            <option value="excellent" ${r.rating==='excellent'?'selected':''}>${t('চমৎকার', 'Excellent', '优秀')}</option>
+            <option value="good" ${r.rating==='good'?'selected':''}>${t('ভালো', 'Good', '良好')}</option>
+            <option value="average" ${r.rating==='average'?'selected':''}>${t('মোটামুটি', 'Average', '一般')}</option>
+            <option value="poor" ${r.rating==='poor'?'selected':''}>${t('দুর্বল', 'Poor', '较差')}</option>
+          </select>
+          ${locked?`<button class="icon-btn admin-lock-btn" title="${t('অ্যাডমিন আনলক করুন','Admin unlock','管理员解锁')}">🔒</button>`:''}
+        </div>
+      </td>
       <td><span class="stamp ${r.rating}">${ratingLabel(r.rating)} · ${ratingScore(r.rating)}</span></td>
-      <td><input class="cell" type="text" data-field="remarks" value="${r.remarks||''}" style="width:140px;text-align:right;" placeholder="মন্তব্য"></td>
+      <td><input class="cell" type="text" data-field="remarks" value="${r.remarks||''}" style="width:130px;text-align:right;" placeholder="${t('সমস্যা থাকলে লিখুন','Note any issue','如有问题请填写')}"></td>
+      <td>
+        <div style="display:flex;align-items:center;gap:5px;">
+          <input class="cell admin-field" type="text" data-field="adminComment" value="${(r.adminComment||'').replace(/"/g,'&quot;')}" style="width:140px;text-align:right;" placeholder="${t('অ্যাডমিন মন্তব্য','Admin comment','管理员备注')}" ${locked?'disabled':''}>
+          ${locked?`<button class="icon-btn admin-lock-btn" title="${t('অ্যাডমিন আনলক করুন','Admin unlock','管理员解锁')}">🔒</button>`:''}
+        </div>
+      </td>
       <td><button class="icon-btn" data-del="${i}">✕</button></td>
     </tr>`).join('');
   document.getElementById('kpiTable').innerHTML = `
-    <thead><tr><th>${t('ক্র.', 'No.', '序号')}</th><th>${t('ক্রাইটেরিয়া', 'Criteria', '标准')}</th><th>${t('রেটিং', 'Rating', '评分')}</th><th>${t('স্কোর', 'Score', '分数')}</th><th>${t('মন্তব্য', 'Remarks', '备注')}</th><th></th></tr></thead>
+    <thead><tr><th>${t('ক্র.', 'No.', '序号')}</th><th>${t('ক্রাইটেরিয়া', 'Criteria', '标准')}</th><th>${t('স্ট্যাটাস','Status','状态')}</th><th>${t('রেটিং', 'Rating', '评分')}</th><th>${t('স্কোর', 'Score', '分数')}</th><th>${t('মন্তব্য', 'Remarks', '备注')}</th><th>${t('অ্যাডমিন মন্তব্য','Admin Comment','管理员备注')}</th><th></th></tr></thead>
     <tbody>${rows}</tbody>`;
-  document.querySelectorAll('#kpiTable select.cell').forEach(inp=>{
+  document.querySelectorAll('#kpiTable select.cell:not(.admin-field)').forEach(inp=>{
     inp.addEventListener('change', e=>{
       const tr = e.target.closest('tr'); const i = Number(tr.dataset.i);
       currentEntry.kpi[i][e.target.dataset.field] = e.target.value;
       renderKpiTable();
     });
   });
-  document.querySelectorAll('#kpiTable input.cell').forEach(inp=>{
+  document.querySelectorAll('#kpiTable select.admin-field').forEach(inp=>{
+    inp.addEventListener('change', e=>{
+      if(!adminUnlocked) return; // shouldn't fire since disabled, but guard anyway
+      const tr = e.target.closest('tr'); const i = Number(tr.dataset.i);
+      currentEntry.kpi[i][e.target.dataset.field] = e.target.value;
+      renderKpiTable();
+    });
+  });
+  document.querySelectorAll('#kpiTable input.cell:not(.admin-field)').forEach(inp=>{
     inp.addEventListener('input', e=>{
       const tr = e.target.closest('tr'); const i = Number(tr.dataset.i);
       currentEntry.kpi[i][e.target.dataset.field] = e.target.value;
       // no full re-render here on purpose — keeps focus/cursor while typing remarks
     });
+  });
+  document.querySelectorAll('#kpiTable input.admin-field').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      if(!adminUnlocked) return;
+      const tr = e.target.closest('tr'); const i = Number(tr.dataset.i);
+      currentEntry.kpi[i][e.target.dataset.field] = e.target.value;
+    });
+  });
+  document.querySelectorAll('#kpiTable .admin-lock-btn').forEach(b=>{
+    b.addEventListener('click', ()=> openAdminModal(()=> renderKpiTable()));
   });
   document.querySelectorAll('#kpiTable [data-del]').forEach(b=>{
     b.addEventListener('click', e=>{ currentEntry.kpi.splice(Number(e.target.dataset.del),1); renderKpiTable(); });
@@ -1551,7 +1630,7 @@ function renderKpiTable(){
 document.getElementById('addKpiRow').addEventListener('click', ()=>{
   const label = prompt('নতুন ক্রাইটেরিয়ার নাম লিখুন / Enter new criteria name:');
   if(!label) return;
-  currentEntry.kpi.push({itemId:uid(), label, rating:'good', remarks:''});
+  currentEntry.kpi.push({itemId:uid(), label, status:'pending', rating:'good', remarks:'', adminComment:''});
   renderKpiTable();
 });
 
@@ -1672,6 +1751,53 @@ function confirmSaveEntry(){
   toast('✓ এন্ট্রি সেভ হয়েছে / Entry saved — '+currentEntry.deptCode+' ('+currentEntry.date+')');
   loadEntryForm();
 }
+
+/* ---------------- ADMIN ACCESS GATE (Employees & Departments) ---------------- */
+let __adminModalOnSuccess = null;
+function openAdminModal(onSuccess){
+  __adminModalOnSuccess = onSuccess;
+  document.getElementById('adminModalPassword').value = '';
+  document.getElementById('adminModalError').textContent = '';
+  document.getElementById('adminModalBackdrop').classList.add('open');
+  setTimeout(()=> document.getElementById('adminModalPassword').focus(), 50);
+}
+function closeAdminModal(){
+  document.getElementById('adminModalBackdrop').classList.remove('open');
+  __adminModalOnSuccess = null;
+}
+document.getElementById('adminModalCancel').addEventListener('click', closeAdminModal);
+document.getElementById('adminModalBackdrop').addEventListener('click', e=>{
+  if(e.target.id==='adminModalBackdrop') closeAdminModal();
+});
+document.getElementById('adminModalPassword').addEventListener('keydown', e=>{
+  if(e.key==='Enter') confirmAdminModal();
+});
+document.getElementById('adminModalConfirm').addEventListener('click', confirmAdminModal);
+function confirmAdminModal(){
+  const pass = document.getElementById('adminModalPassword').value;
+  if(pass !== ADMIN_PASSWORD){
+    document.getElementById('adminModalError').textContent = t('পাসওয়ার্ড সঠিক নয়','Incorrect password','密码不正确');
+    return;
+  }
+  adminUnlocked = true;
+  const cb = __adminModalOnSuccess;
+  closeAdminModal();
+  if(cb) cb();
+}
+// last-resort guard used by individual edit handlers, in case they're ever
+// reachable without having gone through the page-level gate above
+function requireAdminUnlocked(){
+  if(adminUnlocked) return true;
+  openAdminModal(()=> renderEmployeesView());
+  return false;
+}
+// asks two sequential confirms for high-risk actions (delete, import/overwrite, etc.)
+function doubleConfirm(msg1, msg2){
+  if(!confirm(msg1)) return false;
+  if(!confirm(msg2)) return false;
+  return true;
+}
+
 document.getElementById('clearEntryBtn').addEventListener('click', ()=>{
   if(confirm('এই ফর্ম রিসেট করবেন? সেভ না করা তথ্য মুছে যাবে। / Reset this form? Unsaved data will be lost.')) loadEntryForm();
 });
@@ -1831,6 +1957,7 @@ function renderDeptTable(){
     <thead><tr><th>${t('কোড', 'Code', '代码')}</th><th>${t('অফিসার', 'Officer', '职员')}</th><th>${t('লেবার', 'Labour', '劳工')}</th><th>${t('মোট', 'Total', '总计')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('ফ্যাক্টরি', 'Factory', '工厂')}</th><th></th></tr></thead><tbody>${rows}</tbody>`;
   document.querySelectorAll('#deptTable input.cell, #deptTable select.cell').forEach(inp=>{
     inp.addEventListener('input', e=>{
+      if(!requireAdminUnlocked()) { renderDeptTable(); return; }
       const i = Number(e.target.closest('tr').dataset.i);
       DEPTS[i][e.target.dataset.field] = e.target.value;
       saveSync(LS.depts, DEPTS);
@@ -1838,12 +1965,14 @@ function renderDeptTable(){
   });
   document.querySelectorAll('#deptTable [data-del]').forEach(b=>{
     b.addEventListener('click', e=>{
+      if(!requireAdminUnlocked()) return;
       if(!confirm('এই ডিপার্টমেন্ট মুছে ফেলবেন? / Delete this department?')) return;
       DEPTS.splice(Number(e.target.dataset.del),1); saveSync(LS.depts, DEPTS); renderDeptTable();
     });
   });
 }
 document.getElementById('addDeptBtn').addEventListener('click', ()=>{
+  if(!requireAdminUnlocked()) return;
   const code = prompt('নতুন ডিপার্টমেন্ট কোড লিখুন / Enter new department code:');
   if(!code) return;
   DEPTS.push({id:uid(), code, label:code, factory:FACTORIES[0]});
@@ -1874,13 +2003,19 @@ function renderEmpTable(){
       <td><select class="cell" data-field="deptCode" style="width:130px;">
         ${DEPTS.map(d=>`<option value="${d.code}" ${e.deptCode===d.code?'selected':''}>${d.code}</option>`).join('')}
       </select></td>
+      <td><select class="cell" data-field="status" style="width:110px;">
+        <option value="active" ${(e.status||'active')==='active'?'selected':''}>${t('অ্যাক্টিভ','Active','在职')}</option>
+        <option value="transfer" ${e.status==='transfer'?'selected':''}>${t('ট্রান্সফার','Transfer','调动')}</option>
+        <option value="fired" ${e.status==='fired'?'selected':''}>${t('ফায়ারড','Fired','解雇')}</option>
+      </select></td>
       <td><button class="icon-btn" data-del="${e.id}">✕</button></td>
     </tr>`).join('');
   document.getElementById('empTable').innerHTML = `
-    <thead><tr><th>${t('ক্রমিক', 'No.', '序号')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('আইডি', 'ID', '工号')}</th><th>${t('পদবি', 'Designation', '职位')}</th><th>${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th><th></th></tr></thead>
-    <tbody>${rows || '<tr><td colspan="6" style="text-align:center;color:#999;">কোনো এমপ্লয়ি নেই / No employees</td></tr>'}</tbody>`;
+    <thead><tr><th>${t('ক্রমিক', 'No.', '序号')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('আইডি', 'ID', '工号')}</th><th>${t('পদবি', 'Designation', '职位')}</th><th>${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th><th>${t('স্ট্যাটাস','Status','状态')}</th><th></th></tr></thead>
+    <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999;">কোনো এমপ্লয়ি নেই / No employees</td></tr>'}</tbody>`;
   document.querySelectorAll('#empTable input.cell, #empTable select.cell').forEach(inp=>{
     inp.addEventListener('input', e=>{
+      if(!requireAdminUnlocked()) { renderEmpTable(); return; }
       const id = e.target.closest('tr').dataset.id;
       const emp = EMPLOYEES.find(x=>x.id===id);
       emp[e.target.dataset.field] = e.target.value;
@@ -1889,6 +2024,7 @@ function renderEmpTable(){
   });
   document.querySelectorAll('#empTable [data-del]').forEach(b=>{
     b.addEventListener('click', e=>{
+      if(!requireAdminUnlocked()) return;
       if(!confirm('এই এমপ্লয়ি মুছে ফেলবেন? / Delete this employee?')) return;
       EMPLOYEES = EMPLOYEES.filter(x=>x.id!==e.target.dataset.del);
       saveSync(LS.employees, EMPLOYEES); renderEmpTable();
@@ -1898,10 +2034,11 @@ function renderEmpTable(){
 document.getElementById('empDeptFilter').addEventListener('change', renderEmpTable);
 document.getElementById('empSearchBox').addEventListener('input', renderEmpTable);
 document.getElementById('addEmpBtn').addEventListener('click', ()=>{
+  if(!requireAdminUnlocked()) return;
   const name = prompt('এমপ্লয়ির নাম লিখুন / Enter employee name:');
   if(!name) return;
   const deptCode = document.getElementById('empDeptFilter').value || (DEPTS[0]&&DEPTS[0].code) || '';
-  EMPLOYEES.push({id:uid(), name, empId:'', designation:'', deptCode});
+  EMPLOYEES.push({id:uid(), name, empId:'', designation:'', deptCode, status:'active'});
   saveSync(LS.employees, EMPLOYEES); renderEmpTable();
 });
 
@@ -1923,12 +2060,13 @@ function renderNotesView(){
   document.querySelectorAll('#notesTabs .pill').forEach(p=>{
     p.classList.toggle('active', p.dataset.tab===(window.__notesActiveTab||'events'));
   });
-  ['events','tasks','policies'].forEach(tab=>{
+  ['events','tasks','policies','punishments'].forEach(tab=>{
     document.getElementById('notesTab-'+tab).style.display = (tab===(window.__notesActiveTab||'events'))?'block':'none';
   });
   renderEventsTable();
   renderTasksTable();
   renderPoliciesList();
+  renderPunishTables();
 }
 document.getElementById('notesTabs').addEventListener('click', e=>{
   const btn = e.target.closest('.pill'); if(!btn) return;
@@ -2123,6 +2261,93 @@ document.getElementById('addPolicyBtn').addEventListener('click', ()=>{
   renderPoliciesList();
 });
 
+/* ---------------- PUNISHMENTS / WARNING LETTERS ---------------- */
+function employeeDisplayName(empId){
+  const e = EMPLOYEES.find(x=>x.id===empId);
+  return e ? e.name+(e.empId?' ('+e.empId+')':'') : t('(অজানা)','(Unknown)','(未知)');
+}
+function renderPunishTables(){
+  renderPunishSummary();
+  renderPunishTable();
+}
+function renderPunishSummary(){
+  const totals = {}; // empId -> {count, name}
+  PUNISHMENTS.forEach(p=>{
+    if(!p.empId) return;
+    totals[p.empId] = totals[p.empId] || {count:0};
+    totals[p.empId].count += Number(p.count)||0;
+  });
+  const rows = Object.keys(totals)
+    .map(empId=>({empId, count: totals[empId].count}))
+    .sort((a,b)=> b.count - a.count)
+    .map(r=>{
+      const emp = EMPLOYEES.find(x=>x.id===r.empId);
+      return `<tr>
+        <td>${emp? emp.name : t('(অজানা)','(Unknown)','(未知)')}</td>
+        <td class="mono">${emp? (emp.empId||'') : ''}</td>
+        <td class="mono">${emp? emp.deptCode : ''}</td>
+        <td><b class="mono" style="font-size:15px;color:${r.count>=3?'var(--red)':'var(--navy)'};">${r.count}</b></td>
+      </tr>`;
+    }).join('');
+  document.getElementById('punishSummaryTable').innerHTML = `
+    <thead><tr>
+      <th>${t('নাম','Name','姓名')}</th><th>${t('আইডি','ID','工号')}</th><th>${t('ডিপার্টমেন্ট','Dept','部门')}</th><th>${t('মোট ওয়ার্নিং লেটার','Total Warning Letters','警告信总数')}</th>
+    </tr></thead>
+    <tbody>${rows || `<tr><td colspan="4" style="text-align:center;color:#999;">${t('কোনো রেকর্ড নেই','No records yet','暂无记录')}</td></tr>`}</tbody>`;
+}
+function renderPunishTable(){
+  const search = document.getElementById('punishSearchBox').value.trim().toLowerCase();
+  const list = PUNISHMENTS.filter(p=>{
+    if(!search) return true;
+    const name = employeeDisplayName(p.empId).toLowerCase();
+    return name.includes(search) || (p.reason||'').toLowerCase().includes(search);
+  }).sort((a,b)=> (b.date||'').localeCompare(a.date||''));
+
+  const activeEmps = EMPLOYEES.slice().sort((a,b)=> a.name.localeCompare(b.name));
+  const rows = list.map(p=>`
+    <tr data-id="${p.id}">
+      <td><input class="cell" type="date" data-field="date" value="${p.date||''}" style="width:130px;"></td>
+      <td><select class="cell" data-field="empId" style="width:180px;">
+        ${activeEmps.map(e=>`<option value="${e.id}" ${p.empId===e.id?'selected':''}>${e.name}${e.empId?' ('+e.empId+')':''}</option>`).join('')}
+      </select></td>
+      <td><input class="cell" type="text" data-field="reason" value="${(p.reason||'').replace(/"/g,'&quot;')}" style="width:220px;text-align:right;"></td>
+      <td><input class="cell" type="number" min="1" data-field="count" value="${p.count||1}" style="width:70px;"></td>
+      <td><button class="icon-btn" data-del="${p.id}">✕</button></td>
+    </tr>`).join('');
+
+  document.getElementById('punishTable').innerHTML = `
+    <thead><tr>
+      <th>${t('তারিখ','Date','日期')}</th><th>${t('এমপ্লয়ি','Employee','员工')}</th><th>${t('কারণ','Reason','原因')}</th><th>${t('ওয়ার্নিং লেটার সংখ্যা','Warning Letters','警告信数量')}</th><th></th>
+    </tr></thead>
+    <tbody>${rows || `<tr><td colspan="5" style="text-align:center;color:#999;">${t('কোনো এন্ট্রি নেই','No entries yet','暂无记录')}</td></tr>`}</tbody>`;
+
+  document.querySelectorAll('#punishTable .cell').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const id = e.target.closest('tr').dataset.id;
+      const p = PUNISHMENTS.find(x=>x.id===id);
+      p[e.target.dataset.field] = e.target.dataset.field==='count' ? (Number(e.target.value)||1) : e.target.value;
+      saveSync(LS.punishments, PUNISHMENTS);
+      renderPunishSummary();
+    });
+  });
+  document.querySelectorAll('#punishTable [data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      if(!confirm(t('এই এন্ট্রি মুছে ফেলবেন?','Delete this entry?','确定删除此记录吗？'))) return;
+      PUNISHMENTS = PUNISHMENTS.filter(x=>x.id!==e.target.dataset.del);
+      saveSync(LS.punishments, PUNISHMENTS);
+      renderPunishTables();
+    });
+  });
+}
+document.getElementById('punishSearchBox').addEventListener('input', renderPunishTable);
+document.getElementById('punishPrintBtn').addEventListener('click', ()=> printCurrentView(t('পানিশমেন্ট / ওয়ার্নিং লেটার','Punishment / Warning Letters','处罚/警告信')));
+document.getElementById('addPunishBtn').addEventListener('click', ()=>{
+  if(!EMPLOYEES.length){ alert(t('আগে এমপ্লয়ি যোগ করুন','Add an employee first','请先添加员工')); return; }
+  PUNISHMENTS.unshift({id:uid(), date:todayStr(), empId:EMPLOYEES[0].id, reason:'', count:1});
+  saveSync(LS.punishments, PUNISHMENTS);
+  renderPunishTables();
+});
+
 function renderSettings(){
   renderKpiMasterTable();
   const raw = localStorage.getItem(FB_CONFIG_KEY);
@@ -2146,18 +2371,26 @@ function renderKpiMasterTable(){
   });
   document.querySelectorAll('#kpiMasterTable [data-del]').forEach(b=>{
     b.addEventListener('click', e=>{
+      if(!doubleConfirm(
+        t('এই ক্রাইটেরিয়া মুছে ফেলবেন?','Delete this criteria?','确定删除此标准吗？'),
+        t('আপনি কি নিশ্চিত? এটি ফিরিয়ে আনা যাবে না।','Are you sure? This cannot be undone.','您确定吗？此操作无法撤销。')
+      )) return;
       KPI_MASTER.splice(Number(e.target.dataset.del),1); saveSync(LS.kpiMaster, KPI_MASTER); renderKpiMasterTable();
     });
   });
 }
 document.getElementById('addKpiMasterBtn').addEventListener('click', ()=>{
   const label = prompt('নতুন ক্রাইটেরিয়া লিখুন / Enter new criteria:'); if(!label) return;
+  if(!doubleConfirm(
+    t('এই নতুন ক্রাইটেরিয়া যোগ করবেন?','Add this new criteria?','确定添加此新标准吗？')+' "'+label+'"',
+    t('নিশ্চিত করুন — এটি সব ভবিষ্যৎ ডেইলি এন্ট্রিতে যুক্ত হবে।','Confirm — this will appear on all future daily entries.','请确认——此项将出现在所有未来的每日记录中。')
+  )) return;
   KPI_MASTER.push({id:uid(), label}); saveSync(LS.kpiMaster, KPI_MASTER); renderKpiMasterTable();
 });
 
 document.getElementById('exportBtn').addEventListener('click', ()=>{
   const data = {depts:DEPTS, employees:EMPLOYEES, entries:ENTRIES, kpiMaster:KPI_MASTER, dataCats:DATA_CATS,
-    events:EVENTS, tasks:TASKS, policies:POLICIES, exportedAt:new Date().toISOString()};
+    events:EVENTS, tasks:TASKS, policies:POLICIES, punishments:PUNISHMENTS, exportedAt:new Date().toISOString()};
   const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2168,6 +2401,10 @@ document.getElementById('exportBtn').addEventListener('click', ()=>{
 document.getElementById('importBtnLabel').addEventListener('click', ()=> document.getElementById('importFile').click());
 document.getElementById('importFile').addEventListener('change', e=>{
   const file = e.target.files[0]; if(!file) return;
+  if(!doubleConfirm(
+    t('এই ফাইল ইমপোর্ট করলে বর্তমান সব ডাটা ওভাররাইট হবে — নিশ্চিত?','Importing this file will overwrite all current data — are you sure?','导入此文件将覆盖当前所有数据——确定吗？'),
+    t('আবার নিশ্চিত করুন — এটি ফিরিয়ে আনা যাবে না।','Please confirm again — this cannot be undone.','请再次确认——此操作无法撤销。')
+  )){ e.target.value=''; return; }
   const reader = new FileReader();
   reader.onload = ev=>{
     try{
@@ -2180,6 +2417,7 @@ document.getElementById('importFile').addEventListener('change', e=>{
       if(data.events) { EVENTS = data.events; saveSync(LS.events, EVENTS); }
       if(data.tasks) { TASKS = data.tasks; saveSync(LS.tasks, TASKS); }
       if(data.policies) { POLICIES = data.policies; saveSync(LS.policies, POLICIES); }
+      if(data.punishments) { PUNISHMENTS = data.punishments; saveSync(LS.punishments, PUNISHMENTS); }
       toast('✓ ইমপোর্ট সম্পন্ন হয়েছে / Import complete');
       showView('dashboard');
     }catch(err){ alert('ফাইল পড়তে সমস্যা হয়েছে / Could not read file: '+err.message); }
@@ -2197,7 +2435,7 @@ function exportToExcel(){
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(deptRows), 'Departments');
 
   // Employees
-  const empRows = EMPLOYEES.map(e=>({Name:e.name, ID:e.empId, Designation:e.designation, Department:e.deptCode}));
+  const empRows = EMPLOYEES.map(e=>({Name:e.name, ID:e.empId, Designation:e.designation, Department:e.deptCode, Status:e.status||'active'}));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(empRows), 'Employees');
 
   // Daily summary (flattened entries)
@@ -2205,8 +2443,9 @@ function exportToExcel(){
     const c = attCounts(e); const k = kpiAvg(e);
     const dept = deptByCode(e.deptCode);
     let forkHrs = 0; (e.forklift||[]).forEach(f=> forkHrs += Number(f.hours)||0);
+    let warnings = 0; (e.attendance||[]).forEach(r=> warnings += Number(r.warning)||0);
     return {Date:e.date, Department:e.deptCode, Factory:dept?dept.factory:'', Present:c.present, Leave:c.leave,
-      Absent:c.absent, OT_Hours:c.otHours, KPI_Percent:k, Forklift_Hours:forkHrs, Saved_At:e.savedAt||''};
+      Absent:c.absent, OT_Hours:c.otHours, KPI_Percent:k, Forklift_Hours:forkHrs, Warning_Letters:warnings, Saved_At:e.savedAt||''};
   }).sort((a,b)=> (b.Date||'').localeCompare(a.Date||''));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyRows), 'Daily Summary');
 
@@ -2224,9 +2463,13 @@ function exportToExcel(){
   const policyRows = POLICIES.map(p=>({Category:p.category, Title:p.title, Content:p.content, Updated:p.updatedAt}));
   XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(policyRows), 'Policies');
 
+  // Punishments / warning letters
+  const punishRows = PUNISHMENTS.map(p=>({Date:p.date, Employee:employeeDisplayName(p.empId), Reason:p.reason, Warning_Letters:p.count}));
+  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(punishRows), 'Warning Letters');
+
   // Hidden raw-data sheet: complete JSON snapshot, used for perfect round-trip import
   const rawJson = JSON.stringify({depts:DEPTS, employees:EMPLOYEES, entries:ENTRIES, kpiMaster:KPI_MASTER,
-    dataCats:DATA_CATS, events:EVENTS, tasks:TASKS, policies:POLICIES, exportedAt:new Date().toISOString()});
+    dataCats:DATA_CATS, events:EVENTS, tasks:TASKS, policies:POLICIES, punishments:PUNISHMENTS, exportedAt:new Date().toISOString()});
   XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['_RawData'],[rawJson]]), '_RawData');
 
   XLSX.writeFile(wb, 'ewr-backup-'+todayStr()+'.xlsx');
@@ -2255,6 +2498,7 @@ function importFromExcel(file){
       if(data.events) { EVENTS = data.events; saveSync(LS.events, EVENTS); }
       if(data.tasks) { TASKS = data.tasks; saveSync(LS.tasks, TASKS); }
       if(data.policies) { POLICIES = data.policies; saveSync(LS.policies, POLICIES); }
+      if(data.punishments) { PUNISHMENTS = data.punishments; saveSync(LS.punishments, PUNISHMENTS); }
       toast('✓ Excel '+t('ইমপোর্ট সম্পন্ন হয়েছে', 'import complete', '导入完成'));
       showView('dashboard');
     }catch(err){
@@ -2267,6 +2511,10 @@ document.getElementById('exportExcelBtn').addEventListener('click', exportToExce
 document.getElementById('importExcelBtnLabel').addEventListener('click', ()=> document.getElementById('importExcelFile').click());
 document.getElementById('importExcelFile').addEventListener('change', e=>{
   const file = e.target.files[0]; if(!file) return;
+  if(!doubleConfirm(
+    t('এই ফাইল ইমপোর্ট করলে বর্তমান সব ডাটা ওভাররাইট হবে — নিশ্চিত?','Importing this file will overwrite all current data — are you sure?','导入此文件将覆盖当前所有数据——确定吗？'),
+    t('আবার নিশ্চিত করুন — এটি ফিরিয়ে আনা যাবে না।','Please confirm again — this cannot be undone.','请再次确认——此操作无法撤销。')
+  )){ e.target.value=''; return; }
   importFromExcel(file);
 });
 
