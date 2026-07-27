@@ -568,9 +568,9 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
       <div class="card">
         <h3><span class="num">☁</span><span data-bn="Firebase সিঙ্ক (মাল্টি-ডিভাইস)" data-en="Firebase Sync (Multi-device)" data-zh="Firebase同步（多设备）">Firebase সিঙ্ক (মাল্টি-ডিভাইস)</span></h3>
         <p class="small">
-          একবার সংযুক্ত করলে সব ডিপার্টমেন্ট লিডার নিজের ফোন/কম্পিউটার থেকে এন্ট্রি দিলেও একই ডাটাবেসে জমা হবে —
-          সবাই লাইভ একসাথে দেখতে পাবে। বিনামূল্যে Firebase প্রজেক্ট বানিয়ে (Realtime Database চালু করে) নিচের কনফিগ JSON-টা পেস্ট করুন।<br>
-          <span style="color:var(--ink-soft);">Once connected, every department leader's device syncs to the same live database.</span>
+          এই অ্যাপ এখন স্বয়ংক্রিয়ভাবেই একটা শেয়ার্ড Firebase ডাটাবেসের সাথে সংযুক্ত থাকে — এই লিংক যে-ই খুলবে, সে এমনিতেই একই ডাটার সাথে লাইভ সিঙ্কড থাকবে, কোনো সেটআপ লাগবে না।
+          অন্য কোনো আলাদা Firebase প্রজেক্ট ব্যবহার করতে চাইলে নিচে সেই কনফিগ পেস্ট করে ওভাররাইড করতে পারবেন।<br>
+          <span style="color:var(--ink-soft);">This app auto-connects to a shared Firebase database out of the box — no setup needed. Paste a different config below only if you want to point it elsewhere.</span>
         </p>
         <div class="hint" id="fbStatusLine" style="margin-bottom:10px;font-weight:600;" data-bn="যাচাই করা হচ্ছে..." data-en="Checking..." data-zh="检查中...">যাচাই করা হচ্ছে...</div>
         <div class="field" style="max-width:100%;margin-bottom:10px;">
@@ -684,11 +684,47 @@ function setFbStatus(text, ok){
   el.style.color = ok===true ? 'var(--teal)' : ok===false ? 'var(--red)' : 'var(--ink-soft)';
 }
 
+// Firebase Console shows the config as a JS object literal with unquoted
+// keys (e.g. "const firebaseConfig = { apiKey: "...", ... };"), which is
+// NOT valid JSON. Accept that pasted as-is, in addition to strict JSON.
+function parseFirebaseConfigInput(raw){
+  let s = (raw||'').trim();
+  s = s.replace(/^\s*(const|let|var)\s+\w+\s*=\s*/,''); // strip "const firebaseConfig ="
+  s = s.replace(/;\s*$/,''); // strip trailing semicolon
+  try{ return JSON.parse(s); }catch(e){}
+  try{
+    const obj = Function('"use strict"; return (' + s + ');')();
+    if(obj && typeof obj==='object') return obj;
+  }catch(e){}
+  return null;
+}
+
+// If this app is meant to auto-connect everyone to the same shared
+// Firebase project (no per-device setup), fill this in once and every
+// device opening the page will connect automatically. Leave null to
+// require manual entry in Settings instead.
+const DEFAULT_FIREBASE_CONFIG = {
+  apiKey: "AIzaSyBFixDAUILDp2AtQXFouPg2Q0kf8sgdads",
+  authDomain: "warehouse-daily-work-report.firebaseapp.com",
+  databaseURL: "https://warehouse-daily-work-report-default-rtdb.asia-southeast1.firebasedatabase.app",
+  projectId: "warehouse-daily-work-report",
+  storageBucket: "warehouse-daily-work-report.firebasestorage.app",
+  messagingSenderId: "377548621242",
+  appId: "1:377548621242:web:66bbde1d51138c4b8e8983"
+};
+
 function tryInitFirebase(){
   const raw = localStorage.getItem(FB_CONFIG_KEY);
-  if(!raw){ setFbStatus('সংযুক্ত নয় — শুধু এই ডিভাইসে ডাটা সেভ হচ্ছে / Not connected — data saved on this device only', null); return; }
-  let cfg;
-  try{ cfg = JSON.parse(raw); }catch(e){ setFbStatus('Config JSON ঠিক নয় / Invalid config JSON', false); return; }
+  const manuallyDisconnected = localStorage.getItem('ewr_fb_manual_disconnect')==='1';
+  let cfg = null;
+  if(raw){
+    try{ cfg = JSON.parse(raw); }catch(e){ setFbStatus('Config JSON ঠিক নয় / Invalid config JSON', false); return; }
+  } else if(DEFAULT_FIREBASE_CONFIG && !manuallyDisconnected){
+    cfg = DEFAULT_FIREBASE_CONFIG; // auto-connect using the built-in shared project
+  } else {
+    setFbStatus('সংযুক্ত নয় — শুধু এই ডিভাইসে ডাটা সেভ হচ্ছে / Not connected — data saved on this device only', null);
+    return;
+  }
   try{
     fbApp = firebase.initializeApp(cfg);
     fbDb = firebase.database();
@@ -737,6 +773,10 @@ function applyRemoteUpdate(lsKey, val){
   const active = document.querySelector('.nav button.active');
   if(active && active.dataset.view !== 'entry'){
     showView(active.dataset.view);
+  } else if(active && active.dataset.view === 'entry'){
+    // still let the person know sync is actually happening — otherwise it
+    // just looks broken since we deliberately don't refresh this form live
+    toast('🔄 '+t('নতুন ডাটা সিঙ্ক হয়েছে (অন্য পেজে গেলে দেখা যাবে)','New data synced (switch pages to see it)','新数据已同步（切换页面即可查看）'));
   }
 }
 function toast(msg){
@@ -2521,14 +2561,17 @@ document.getElementById('importExcelFile').addEventListener('change', e=>{
 document.getElementById('fbConnectBtn').addEventListener('click', ()=>{
   const raw = document.getElementById('fbConfigInput').value.trim();
   if(!raw){ setFbStatus('আগে Firebase config JSON পেস্ট করুন / Paste the Firebase config JSON first', false); return; }
-  let cfg;
-  try{ cfg = JSON.parse(raw); }
-  catch(e){ setFbStatus('Config JSON ঠিক নয় — Firebase Console থেকে পুরো অবজেক্টটা কপি করে পেস্ট করুন / Invalid JSON — copy the full object from Firebase Console', false); return; }
+  const cfg = parseFirebaseConfigInput(raw);
+  if(!cfg){
+    setFbStatus('Config পড়া যায়নি — Firebase Console থেকে পুরো কোড ব্লকটা কপি করে পেস্ট করুন / Could not read config — copy the whole code block from Firebase Console', false);
+    return;
+  }
   if(!cfg.databaseURL){
     setFbStatus('এই config-এ databaseURL নেই — Realtime Database চালু করে আবার কনফিগ কপি করুন / No databaseURL — enable Realtime Database and copy the config again', false);
     return;
   }
   localStorage.setItem(FB_CONFIG_KEY, JSON.stringify(cfg));
+  localStorage.removeItem('ewr_fb_manual_disconnect');
   setFbStatus('সংযুক্ত হচ্ছে... / Connecting...', null);
   try{
     if(fbApp){ toast('নতুন কনফিগ সেভ হয়েছে — পাতাটি রিলোড করুন / New config saved — reload the page'); return; }
@@ -2541,6 +2584,7 @@ document.getElementById('fbConnectBtn').addEventListener('click', ()=>{
 document.getElementById('fbDisconnectBtn').addEventListener('click', ()=>{
   if(!confirm('Firebase সংযোগ বিচ্ছিন্ন করবেন? এরপর থেকে ডাটা শুধু এই ডিভাইসেই সেভ হবে। / Disconnect Firebase? Data will then be saved on this device only.')) return;
   localStorage.removeItem(FB_CONFIG_KEY);
+  localStorage.setItem('ewr_fb_manual_disconnect', '1');
   document.getElementById('fbConfigInput').value = '';
   setFbStatus('সংযোগ বিচ্ছিন্ন হয়েছে — পাতাটি রিলোড করুন যাতে সম্পূর্ণভাবে অফলাইন মোডে যায় / Disconnected — reload the page to go fully offline', null);
   toast('Firebase সংযোগ মুছে ফেলা হয়েছে / Firebase connection removed');
