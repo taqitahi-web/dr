@@ -792,22 +792,30 @@ function tryInitFirebase(){
     fbDb = firebase.database();
     setFbStatus('সংযুক্ত হচ্ছে... / Connecting...', null);
     firebaseAuthActive = true;
-    firebase.auth().onAuthStateChanged(user=>{
-      if(user){
-        currentUserEmail = user.email;
-        hideLoginOverlay();
-        fbReady = true;
-        setFbStatus('🔥 Firebase সংযুক্ত — লাইভ সিঙ্ক চালু আছে ('+user.email+') / Connected — live sync active', true);
-        updateLogoutBar();
-        initFirebaseListeners();
-      } else {
-        currentUserEmail = null;
-        fbReady = false;
-        setFbStatus('লগইন প্রয়োজন / Login required', null);
-        updateLogoutBar();
-        showLoginOverlay();
-      }
-    });
+    // SESSION persistence: stay logged in while this tab/browser session is
+    // open (survives a page reload), but require login again once the tab
+    // or browser is closed and reopened — matches what people expect from
+    // a login screen, instead of silently staying signed in forever.
+    firebase.auth().setPersistence(firebase.auth.Auth.Persistence.SESSION)
+      .catch(err=> console.warn('Could not set auth persistence:', err))
+      .then(()=>{
+        firebase.auth().onAuthStateChanged(user=>{
+          if(user){
+            currentUserEmail = user.email;
+            hideLoginOverlay();
+            fbReady = true;
+            setFbStatus('🔥 Firebase সংযুক্ত — লাইভ সিঙ্ক চালু আছে ('+user.email+') / Connected — live sync active', true);
+            updateLogoutBar();
+            initFirebaseListeners();
+          } else {
+            currentUserEmail = null;
+            fbReady = false;
+            setFbStatus('লগইন প্রয়োজন / Login required', null);
+            updateLogoutBar();
+            showLoginOverlay();
+          }
+        });
+      });
   }catch(err){
     console.error('Firebase init failed:', err);
     setFbStatus('সংযোগ ব্যর্থ হয়েছে / Connection failed: '+err.message, false);
