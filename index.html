@@ -9,6 +9,7 @@
 <script src="https://cdnjs.cloudflare.com/ajax/libs/Chart.js/4.4.1/chart.umd.min.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-app-compat.js"></script>
 <script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-database-compat.js"></script>
+<script src="https://www.gstatic.com/firebasejs/10.12.2/firebase-auth-compat.js"></script>
 <script src="https://cdnjs.cloudflare.com/ajax/libs/xlsx/0.18.5/xlsx.full.min.js"></script>
 <style>
 :root{
@@ -241,6 +242,27 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
 .modal-error{color:var(--red);font-size:12.5px;margin-top:7px;min-height:16px;}
 .modal-actions{display:flex;justify-content:flex-end;gap:10px;margin-top:16px;}
 
+/* ---------- login overlay ---------- */
+.login-overlay{
+  display:none;position:fixed;inset:0;z-index:500;background:var(--navy);
+  align-items:center;justify-content:center;padding:20px;
+}
+.login-overlay.open{display:flex;}
+.login-box{
+  background:#fff;border-radius:14px;padding:26px 26px 20px;max-width:360px;width:100%;
+  box-shadow:0 20px 60px rgba(0,0,0,.4);
+}
+.logout-bar{
+  display:none;align-items:center;justify-content:space-between;gap:8px;
+  padding:8px 18px;font-size:11.5px;color:#9db4c2;border-top:1px solid rgba(255,255,255,.08);
+}
+.logout-bar.show{display:flex;}
+.logout-bar button{
+  background:transparent;border:1px solid rgba(255,255,255,.25);color:#c7d8e2;
+  border-radius:6px;padding:3px 9px;font-size:11px;cursor:pointer;
+}
+.logout-bar button:hover{background:rgba(255,255,255,.08);}
+
 /* ---------- print / PDF export ---------- */
 #printHeader{display:none;}
 @media print{
@@ -297,6 +319,10 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
       <button data-view="employees"><span class="icon">☺</span><span data-bn="এমপ্লয়ি ও ডিপার্টমেন্ট" data-en="Employees &amp; Depts" data-zh="员工与部门">এমপ্লয়ি ও ডিপার্টমেন্ট</span></button>
       <button data-view="notes"><span class="icon">🗒</span><span data-bn="নোট" data-en="Notes" data-zh="备注事项">নোট</span></button>
       <button data-view="settings"><span class="icon">⚙</span><span data-bn="সেটিংস / ব্যাকআপ" data-en="Settings" data-zh="设置">সেটিংস / ব্যাকআপ</span></button>
+    </div>
+    <div class="logout-bar" id="logoutBar">
+      <span id="logoutBarEmail"></span>
+      <button id="logoutBtn"><span data-bn="লগআউট" data-en="Log out" data-zh="退出登录">লগআউট</span></button>
     </div>
     <div class="side-foot">v1.0 · local-storage · offline-ready<br>Developed by M a s u d</div>
   </div>
@@ -641,6 +667,29 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
   </div>
 </div>
 
+<div class="login-overlay" id="loginOverlay">
+  <div class="login-box">
+    <div class="tag" style="text-align:center;margin-bottom:6px;">EPFBD · Factory Ops</div>
+    <h2 style="text-align:center;color:var(--navy);margin:0 0 4px;">
+      <span data-bn="লগইন করুন" data-en="Sign In" data-zh="登录">লগইন করুন</span>
+    </h2>
+    <div class="modal-sub" style="text-align:center;" data-bn="এই সিস্টেম ব্যবহার করতে অনুমোদিত ইমেইল দিয়ে লগইন করুন" data-en="Sign in with an authorized email to use this system" data-zh="请使用授权邮箱登录本系统">এই সিস্টেম ব্যবহার করতে অনুমোদিত ইমেইল দিয়ে লগইন করুন</div>
+    <form id="loginForm" style="margin-top:14px;">
+      <label><span data-bn="ইমেইল" data-en="Email" data-zh="邮箱">ইমেইল</span></label>
+      <input type="email" id="loginEmail" placeholder="you@example.com" autocomplete="username" required style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;margin-bottom:10px;">
+      <label><span data-bn="পাসওয়ার্ড" data-en="Password" data-zh="密码">পাসওয়ার্ড</span></label>
+      <input type="password" id="loginPassword" placeholder="••••••••" autocomplete="current-password" required style="width:100%;padding:10px 12px;border:1.5px solid var(--line);border-radius:8px;font-size:14px;">
+      <div class="modal-error" id="loginError"></div>
+      <button type="submit" class="btn btn-amber" style="width:100%;margin-top:14px;justify-content:center;">
+        <span data-bn="লগইন করুন" data-en="Sign In" data-zh="登录">লগইন করুন</span>
+      </button>
+    </form>
+    <a class="linklike" id="forgotPasswordLink" style="display:block;text-align:center;margin-top:12px;">
+      <span data-bn="পাসওয়ার্ড ভুলে গেছেন?" data-en="Forgot password?" data-zh="忘记密码？">পাসওয়ার্ড ভুলে গেছেন?</span>
+    </a>
+  </div>
+</div>
+
 <script>
 /* ======================================================================
    DAILY WORK REPORT & KPI — EPFBD
@@ -667,6 +716,8 @@ const FB_PATHS = {
   [LS.events]:'events', [LS.tasks]:'tasks', [LS.policies]:'policies', [LS.punishments]:'punishments'
 };
 let fbApp = null, fbDb = null, fbReady = false;
+let firebaseAuthActive = false; // true once we've started using real login (vs local-only mode)
+let currentUserEmail = null;
 let __suppressFbEcho = false; // avoid re-broadcasting a change we just received
 
 function saveSync(key, val){
@@ -728,9 +779,24 @@ function tryInitFirebase(){
   try{
     fbApp = firebase.initializeApp(cfg);
     fbDb = firebase.database();
-    fbReady = true;
-    setFbStatus('🔥 Firebase সংযুক্ত — লাইভ সিঙ্ক চালু আছে / Connected — live sync active', true);
-    initFirebaseListeners();
+    setFbStatus('সংযুক্ত হচ্ছে... / Connecting...', null);
+    firebaseAuthActive = true;
+    firebase.auth().onAuthStateChanged(user=>{
+      if(user){
+        currentUserEmail = user.email;
+        hideLoginOverlay();
+        fbReady = true;
+        setFbStatus('🔥 Firebase সংযুক্ত — লাইভ সিঙ্ক চালু আছে ('+user.email+') / Connected — live sync active', true);
+        updateLogoutBar();
+        initFirebaseListeners();
+      } else {
+        currentUserEmail = null;
+        fbReady = false;
+        setFbStatus('লগইন প্রয়োজন / Login required', null);
+        updateLogoutBar();
+        showLoginOverlay();
+      }
+    });
   }catch(err){
     console.error('Firebase init failed:', err);
     setFbStatus('সংযোগ ব্যর্থ হয়েছে / Connection failed: '+err.message, false);
@@ -1794,6 +1860,49 @@ function confirmSaveEntry(){
 
 /* ---------------- ADMIN ACCESS GATE (Employees & Departments) ---------------- */
 let __adminModalOnSuccess = null;
+/* ---------------- LOGIN (Firebase email/password) ---------------- */
+function showLoginOverlay(){
+  document.getElementById('loginOverlay').classList.add('open');
+}
+function hideLoginOverlay(){
+  document.getElementById('loginOverlay').classList.remove('open');
+  document.getElementById('loginError').textContent = '';
+  document.getElementById('loginForm').reset();
+}
+function updateLogoutBar(){
+  const bar = document.getElementById('logoutBar');
+  if(currentUserEmail){
+    bar.classList.add('show');
+    document.getElementById('logoutBarEmail').textContent = currentUserEmail;
+  } else {
+    bar.classList.remove('show');
+  }
+}
+document.getElementById('loginForm').addEventListener('submit', e=>{
+  e.preventDefault();
+  const email = document.getElementById('loginEmail').value.trim();
+  const pass = document.getElementById('loginPassword').value;
+  const errEl = document.getElementById('loginError');
+  errEl.textContent = t('লগইন করা হচ্ছে...','Signing in...','正在登录...');
+  firebase.auth().signInWithEmailAndPassword(email, pass)
+    .then(()=>{ errEl.textContent = ''; })
+    .catch(err=>{
+      console.error('Login failed:', err);
+      errEl.textContent = t('লগইন ব্যর্থ — ইমেইল বা পাসওয়ার্ড ভুল','Login failed — wrong email or password','登录失败——邮箱或密码错误');
+    });
+});
+document.getElementById('forgotPasswordLink').addEventListener('click', ()=>{
+  const email = document.getElementById('loginEmail').value.trim();
+  if(!email){ alert(t('আগে ইমেইল বক্সে আপনার ইমেইল লিখুন','Enter your email in the box above first','请先在邮箱框中输入您的邮箱')); return; }
+  firebase.auth().sendPasswordResetEmail(email)
+    .then(()=> alert(t('পাসওয়ার্ড রিসেট লিংক ইমেইলে পাঠানো হয়েছে','Password reset link sent to your email','密码重置链接已发送到您的邮箱')))
+    .catch(err=> alert(t('ব্যর্থ হয়েছে: ','Failed: ','失败：')+err.message));
+});
+document.getElementById('logoutBtn').addEventListener('click', ()=>{
+  if(!confirm(t('লগআউট করবেন?','Log out?','确定退出登录吗？'))) return;
+  firebase.auth().signOut();
+});
+
 function openAdminModal(onSuccess){
   __adminModalOnSuccess = onSuccess;
   document.getElementById('adminModalPassword').value = '';
@@ -2576,7 +2685,6 @@ document.getElementById('fbConnectBtn').addEventListener('click', ()=>{
   try{
     if(fbApp){ toast('নতুন কনফিগ সেভ হয়েছে — পাতাটি রিলোড করুন / New config saved — reload the page'); return; }
     tryInitFirebase();
-    toast('✓ Firebase-এর সাথে সংযুক্ত হয়েছে / Connected to Firebase');
   }catch(err){
     setFbStatus('সংযোগ ব্যর্থ / Connection failed: '+err.message, false);
   }
@@ -2603,7 +2711,16 @@ document.getElementById('wipeBtn').addEventListener('click', ()=>{
 document.getElementById('entryDate').value = todayStr();
 applyStaticLanguage();
 showView('dashboard');
+// if this deployment will use Firebase, show the login gate immediately —
+// tryInitFirebase()'s auth check is async, so this avoids a brief flash of
+// the (locally-cached) dashboard before the login screen appears
+(function(){
+  const raw = localStorage.getItem(FB_CONFIG_KEY);
+  const manuallyDisconnected = localStorage.getItem('ewr_fb_manual_disconnect')==='1';
+  if(raw || (DEFAULT_FIREBASE_CONFIG && !manuallyDisconnected)) showLoginOverlay();
+})();
 tryInitFirebase();
 </script>
+
 </body>
 </html>
