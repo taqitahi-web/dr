@@ -630,7 +630,7 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
       </div>
       <div class="card">
         <h3><span class="num">1</span><span data-bn="ডাটা ব্যাকআপ (Export / Import)" data-en="Data Backup (Export / Import)" data-zh="数据备份（导出 / 导入）">ডাটা ব্যাকআপ (Export / Import)</span></h3>
-        <p class="small" data-bn="সব ডাটা এই ব্রাউজারের localStorage-এ (এবং Firebase সংযুক্ত থাকলে সেখানেও) সেভ থাকে। নিয়মিত ব্যাকআপ নিয়ে রাখা ভালো — JSON ব্যাকআপে হুবহু ডাটা ফিরে আসে; Excel ফাইলে সব তথ্য শীট আকারে দেখা যায় (রিপোর্টের জন্য), এবং এই অ্যাপ থেকে এক্সপোর্ট করা Excel ফাইল আবার ইমপোর্টও করা যাবে।" data-en="All data is saved in this browser's localStorage (and Firebase, if connected). Regular backups are recommended — JSON restores data exactly; Excel shows everything as readable sheets (for reporting), and an Excel file exported from this app can also be re-imported." data-zh="所有数据均保存在此浏览器的本地存储中（如已连接则同时保存到Firebase）。建议定期备份 — JSON可精确还原数据；Excel将所有数据显示为可读表格（便于报告），且由本应用导出的Excel文件也可重新导入。">সব ডাটা এই ব্রাউজারের localStorage-এ (এবং Firebase সংযুক্ত থাকলে সেখানেও) সেভ থাকে। নিয়মিত ব্যাকআপ নিয়ে রাখা ভালো — JSON ব্যাকআপে হুবহু ডাটা ফিরে আসে; Excel ফাইলে সব তথ্য শীট আকারে দেখা যায় (রিপোর্টের জন্য), এবং এই অ্যাপ থেকে এক্সপোর্ট করা Excel ফাইল আবার ইমপোর্টও করা যাবে।</p>
+        <p class="small" data-bn="সব ডাটা এই ব্রাউজারের localStorage-এ (এবং Firebase সংযুক্ত থাকলে সেখানেও) সেভ থাকে। নিয়মিত ব্যাকআপ নিয়ে রাখা ভালো — JSON ব্যাকআপে হুবহু সব ডাটা ফিরে আসে (সম্পূর্ণ রিস্টোর)। Excel ফাইলে সব শীট দেখা যায়, কিন্তু ইমপোর্টের সময় শুধু 'Employees' ও 'Departments' শীট থেকে মিলে যাওয়া রেকর্ড আপডেট/নতুন যোগ হয় — বাকি শীট (Daily Summary, Events, Tasks, Policies, Warning Letters) শুধু রিপোর্ট/রেফারেন্সের জন্য, এডিট করে আপলোড করলে কিছু পরিবর্তন হবে না।" data-en="All data is saved in this browser's localStorage (and Firebase, if connected). Regular backups are recommended — JSON restores everything exactly (full restore). Excel shows all sheets, but on import only the 'Employees' and 'Departments' sheets are used to update matching records (or add new ones) — the other sheets (Daily Summary, Events, Tasks, Policies, Warning Letters) are read-only reports and editing them has no effect." data-zh="所有数据均保存在此浏览器的本地存储中（如已连接则同时保存到Firebase）。建议定期备份 — JSON可精确还原全部数据（完全恢复）。Excel会显示所有工作表，但导入时只会根据'Employees'和'Departments'工作表更新匹配的记录（或添加新记录）——其他工作表（Daily Summary、Events、Tasks、Policies、Warning Letters）仅供查阅参考，编辑后上传不会生效。">সব ডাটা এই ব্রাউজারের localStorage-এ (এবং Firebase সংযুক্ত থাকলে সেখানেও) সেভ থাকে। নিয়মিত ব্যাকআপ নিয়ে রাখা ভালো — JSON ব্যাকআপে হুবহু সব ডাটা ফিরে আসে (সম্পূর্ণ রিস্টোর)। Excel ফাইলে সব শীট দেখা যায়, কিন্তু ইমপোর্টের সময় শুধু 'Employees' ও 'Departments' শীট থেকে মিলে যাওয়া রেকর্ড আপডেট/নতুন যোগ হয় — বাকি শীট (Daily Summary, Events, Tasks, Policies, Warning Letters) শুধু রিপোর্ট/রেফারেন্সের জন্য, এডিট করে আপলোড করলে কিছু পরিবর্তন হবে না।</p>
         <div class="toolbar">
           <button class="btn btn-navy" id="exportBtn">⬇ JSON <span data-bn="এক্সপোর্ট করুন" data-en="Export" data-zh="导出">এক্সপোর্ট করুন</span></button>
           <button class="btn btn-ghost" id="importBtnLabel">⬆ JSON <span data-bn="ইমপোর্ট করুন" data-en="Import" data-zh="导入">ইমপোর্ট করুন</span></button>
@@ -2129,6 +2129,7 @@ function renderDeptTable(){
       <td><select class="cell" data-field="factory">
         ${FACTORIES.map(f=>`<option value="${f}" ${d.factory===f?'selected':''}>${f}</option>`).join('')}
       </select></td>
+      <td><input class="cell" type="text" data-field="floor" value="${(d.floor||'').replace(/"/g,'&quot;')}" placeholder="${t('ফ্লোর/বিল্ডিং','Floor/Building','楼层/楼栋')}" style="text-align:right;"></td>
       <td class="reorder-btns">
         <button class="icon-btn" data-move-up="${i}" ${i===0?'disabled':''} title="${t('উপরে সরান','Move up','上移')}">▲</button>
         <button class="icon-btn" data-move-down="${i}" ${i===DEPTS.length-1?'disabled':''} title="${t('নিচে সরান','Move down','下移')}">▼</button>
@@ -2146,6 +2147,7 @@ function renderDeptTable(){
       <th style="width:8%;">${t('মোট', 'Total', '总计')}</th>
       <th>${t('নাম', 'Name', '姓名')}</th>
       <th style="width:100px;">${t('ফ্যাক্টরি', 'Factory', '工厂')}</th>
+      <th style="width:11%;">${t('ফ্লোর/বিল্ডিং', 'Floor/Building', '楼层/楼栋')}</th>
       <th style="width:76px;">${t('সাজান','Reorder','排序')}</th>
       <th style="width:34px;"></th>
     </tr></thead><tbody>${rows}</tbody>`;
@@ -2239,19 +2241,25 @@ function renderEmpTable(){
         <option value="transfer" ${e.status==='transfer'?'selected':''}>${t('ট্রান্সফার','Transfer','调动')}</option>
         <option value="fired" ${e.status==='fired'?'selected':''}>${t('ফায়ারড','Fired','解雇')}</option>
       </select></td>
+      <td><input class="cell" type="date" data-field="joinDate" value="${e.joinDate||''}"></td>
+      <td><input class="cell" type="text" data-field="phone" value="${(e.phone||'').replace(/"/g,'&quot;')}" placeholder="01XXXXXXXXX"></td>
+      <td><input class="cell" type="text" data-field="address" value="${(e.address||'').replace(/"/g,'&quot;')}" style="text-align:right;" placeholder="${t('ঠিকানা','Address','地址')}"></td>
       <td><button class="icon-btn" data-del="${e.id}">✕</button></td>
     </tr>`).join('');
   document.getElementById('empTable').innerHTML = `
     <thead><tr>
       <th style="width:44px;">${t('ক্রমিক', 'No.', '序号')}</th>
-      <th>${t('নাম', 'Name', '姓名')}</th>
-      <th style="width:80px;">${t('আইডি', 'ID', '工号')}</th>
-      <th style="width:22%;">${t('পদবি', 'Designation', '职位')}</th>
-      <th style="width:110px;">${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th>
-      <th style="width:100px;">${t('স্ট্যাটাস','Status','状态')}</th>
+      <th style="width:14%;">${t('নাম', 'Name', '姓名')}</th>
+      <th style="width:70px;">${t('আইডি', 'ID', '工号')}</th>
+      <th style="width:14%;">${t('পদবি', 'Designation', '职位')}</th>
+      <th style="width:90px;">${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th>
+      <th style="width:90px;">${t('স্ট্যাটাস','Status','状态')}</th>
+      <th style="width:110px;">${t('জয়েন ডেট','Join Date','入职日期')}</th>
+      <th style="width:110px;">${t('ফোন নম্বর','Phone','电话号码')}</th>
+      <th>${t('ঠিকানা','Address','地址')}</th>
       <th style="width:34px;"></th>
     </tr></thead>
-    <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999;">কোনো এমপ্লয়ি নেই / No employees</td></tr>'}</tbody>`;
+    <tbody>${rows || '<tr><td colspan="10" style="text-align:center;color:#999;">কোনো এমপ্লয়ি নেই / No employees</td></tr>'}</tbody>`;
   document.querySelectorAll('#empTable input.cell, #empTable select.cell').forEach(inp=>{
     inp.addEventListener('input', e=>{
       if(!requireAdminUnlocked()) { renderEmpTable(); return; }
@@ -2470,7 +2478,7 @@ function renderPoliciesList(){
         </div>
       </div>
       <label class="small">${t('বিবরণ', 'Content', '内容')}</label>
-      <textarea class="cell policy-field" data-field="content" rows="3" style="width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 10px;text-align:right;resize:vertical;">${p.content||''}</textarea>
+      <textarea class="cell policy-field" data-field="content" rows="3" style="width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 10px;text-align:center;resize:vertical;">${p.content||''}</textarea>
       <div class="small" style="margin-top:6px;">${t('সর্বশেষ আপডেট', 'Last updated', '最后更新')}: ${p.updatedAt||''}</div>
     </div>`).join('') || `<div class="empty">${t('কোনো পলিসি নেই', 'No policies yet', '暂无政策')}</div>`;
 
@@ -2667,52 +2675,67 @@ document.getElementById('importFile').addEventListener('change', e=>{
 /* ---------------- EXCEL EXPORT / IMPORT ---------------- */
 function exportToExcel(){
   if(typeof XLSX==='undefined'){ alert(t('Excel লাইব্রেরি লোড হয়নি — ইন্টারনেট সংযোগ দেখুন', 'Excel library did not load — check your internet connection', 'Excel库未能加载 — 请检查网络连接')); return; }
-  const wb = XLSX.utils.book_new();
+  try{
+    const wb = XLSX.utils.book_new();
 
-  // Departments
-  const deptRows = DEPTS.map(d=>({Code:d.code, Name:d.label||d.code, Factory:d.factory}));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(deptRows), 'Departments');
+    // Departments
+    const deptRows = DEPTS.map(d=>({Code:d.code, Name:d.label||d.code, Factory:d.factory, Floor_Building:d.floor||''}));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(deptRows), 'Departments');
 
-  // Employees
-  const empRows = EMPLOYEES.map(e=>({Name:e.name, ID:e.empId, Designation:e.designation, Department:e.deptCode, Status:e.status||'active'}));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(empRows), 'Employees');
+    // Employees
+    const empRows = EMPLOYEES.map(e=>({Name:e.name, ID:e.empId, Designation:e.designation, Department:e.deptCode, Status:e.status||'active', Join_Date:e.joinDate||'', Phone:e.phone||'', Address:e.address||''}));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(empRows), 'Employees');
 
-  // Daily summary (flattened entries)
-  const dailyRows = Object.values(ENTRIES).map(e=>{
-    const c = attCounts(e); const k = kpiAvg(e);
-    const dept = deptByCode(e.deptCode);
-    let forkHrs = 0; (e.forklift||[]).forEach(f=> forkHrs += Number(f.hours)||0);
-    let warnings = 0; (e.attendance||[]).forEach(r=> warnings += Number(r.warning)||0);
-    return {Date:e.date, Department:e.deptCode, Factory:dept?dept.factory:'', Present:c.present, Leave:c.leave,
-      Absent:c.absent, OT_Hours:c.otHours, KPI_Percent:k, Forklift_Hours:forkHrs, Warning_Letters:warnings, Saved_At:e.savedAt||''};
-  }).sort((a,b)=> (b.Date||'').localeCompare(a.Date||''));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyRows), 'Daily Summary');
+    // Daily summary (flattened entries)
+    const dailyRows = Object.values(ENTRIES).map(e=>{
+      const c = attCounts(e); const k = kpiAvg(e);
+      const dept = deptByCode(e.deptCode);
+      let forkHrs = 0; (e.forklift||[]).forEach(f=> forkHrs += Number(f.hours)||0);
+      let warnings = 0; (e.attendance||[]).forEach(r=> warnings += Number(r.warning)||0);
+      return {Date:e.date, Department:e.deptCode, Factory:dept?dept.factory:'', Present:c.present, Leave:c.leave,
+        Absent:c.absent, OT_Hours:c.otHours, KPI_Percent:k, Forklift_Hours:forkHrs, Warning_Letters:warnings, Saved_At:e.savedAt||''};
+    }).sort((a,b)=> (b.Date||'').localeCompare(a.Date||''));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(dailyRows), 'Daily Summary');
 
-  // KPI criteria master
-  const kpiRows = KPI_MASTER.map(k=>({Criteria:k.label}));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpiRows), 'KPI Criteria');
+    // KPI criteria master
+    const kpiRows = KPI_MASTER.map(k=>({Criteria:k.label}));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(kpiRows), 'KPI Criteria');
 
-  // Notes: events / tasks / policies
-  const eventRows = EVENTS.map(e=>({Date:e.date, Type:e.type, Department:e.department, Title:e.title, Description:e.description, Status:e.status}));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(eventRows), 'Events Log');
+    // Notes: events / tasks / policies
+    const eventRows = EVENTS.map(e=>({Date:e.date, Type:e.type, Department:e.department, Title:e.title, Description:e.description, Status:e.status}));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(eventRows), 'Events Log');
 
-  const taskRows = TASKS.map(tk=>({Task:tk.title, Responsible:tk.responsible, Deadline:tk.deadline, Priority:tk.priority, Status:tk.status}));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(taskRows), 'Tasks');
+    const taskRows = TASKS.map(tk=>({Task:tk.title, Responsible:tk.responsible, Deadline:tk.deadline, Priority:tk.priority, Status:tk.status}));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(taskRows), 'Tasks');
 
-  const policyRows = POLICIES.map(p=>({Category:p.category, Title:p.title, Content:p.content, Updated:p.updatedAt}));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(policyRows), 'Policies');
+    const policyRows = POLICIES.map(p=>({Category:p.category, Title:p.title, Content:p.content, Updated:p.updatedAt}));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(policyRows), 'Policies');
 
-  // Punishments / warning letters
-  const punishRows = PUNISHMENTS.map(p=>({Date:p.date, Employee:employeeDisplayName(p.empId), Reason:p.reason, Warning_Letters:p.count}));
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(punishRows), 'Warning Letters');
+    // Punishments / warning letters
+    const punishRows = PUNISHMENTS.map(p=>({Date:p.date, Employee:employeeDisplayName(p.empId), Reason:p.reason, Warning_Letters:p.count}));
+    XLSX.utils.book_append_sheet(wb, XLSX.utils.json_to_sheet(punishRows), 'Warning Letters');
 
-  // Hidden raw-data sheet: complete JSON snapshot, used for perfect round-trip import
-  const rawJson = JSON.stringify({depts:DEPTS, employees:EMPLOYEES, entries:ENTRIES, kpiMaster:KPI_MASTER,
-    dataCats:DATA_CATS, events:EVENTS, tasks:TASKS, policies:POLICIES, punishments:PUNISHMENTS, exportedAt:new Date().toISOString()});
-  XLSX.utils.book_append_sheet(wb, XLSX.utils.aoa_to_sheet([['_RawData'],[rawJson]]), '_RawData');
+    XLSX.writeFile(wb, 'ewr-backup-'+todayStr()+'.xlsx');
+    toast('✓ Excel '+t('ব্যাকআপ ডাউনলোড হয়েছে', 'backup downloaded', '备份已下载'));
+  }catch(err){
+    console.error('Excel export failed:', err);
+    alert(t('Excel এক্সপোর্ট ব্যর্থ হয়েছে: ','Excel export failed: ','Excel导出失败：')+err.message);
+  }
+}
 
-  XLSX.writeFile(wb, 'ewr-backup-'+todayStr()+'.xlsx');
-  toast('✓ Excel '+t('ব্যাকআপ ডাউনলোড হয়েছে', 'backup downloaded', '备份已下载'));
+// Converts an Excel date cell (serial number, or various text formats) to
+// the yyyy-mm-dd string our <input type="date"> fields expect.
+function excelValueToISODate(val){
+  if(val===undefined || val===null || val==='') return '';
+  if(typeof val==='number'){
+    const d = new Date(Math.round((val-25569)*86400*1000));
+    if(!isNaN(d)) return d.toISOString().slice(0,10);
+  }
+  const s = String(val).trim();
+  if(/^\d{4}-\d{2}-\d{2}$/.test(s)) return s;
+  const d2 = new Date(s);
+  if(!isNaN(d2)) return d2.toISOString().slice(0,10);
+  return s;
 }
 
 function importFromExcel(file){
@@ -2721,25 +2744,72 @@ function importFromExcel(file){
   reader.onload = ev=>{
     try{
       const wb = XLSX.read(ev.target.result, {type:'array'});
-      if(!wb.SheetNames.includes('_RawData')){
-        alert(t('এই Excel ফাইলে অ্যাপের ডাটা নেই — শুধু এই অ্যাপ থেকে এক্সপোর্ট করা Excel ফাইল ইমপোর্ট করা যাবে', 'This Excel file has no app data — only Excel files exported from this app can be imported', '此Excel文件不包含应用数据 — 只能导入由本应用导出的Excel文件'));
+      let empUpdated=0, empAdded=0, deptUpdated=0, deptAdded=0;
+
+      // --- Employees sheet: update matching employees, add genuinely new ones ---
+      if(wb.SheetNames.includes('Employees')){
+        const empRows = XLSX.utils.sheet_to_json(wb.Sheets['Employees'], {raw:false});
+        empRows.forEach(row=>{
+          const idVal = row.ID!==undefined && row.ID!==null ? String(row.ID).trim() : '';
+          const nameVal = row.Name ? String(row.Name).trim() : '';
+          if(!idVal && !nameVal) return; // skip blank rows
+          const deptVal = row.Department ? String(row.Department).trim() : '';
+          let emp = null;
+          if(idVal) emp = EMPLOYEES.find(e=> String(e.empId||'').trim()===idVal && idVal!=='');
+          if(!emp && nameVal) emp = EMPLOYEES.find(e=> e.name.trim().toLowerCase()===nameVal.toLowerCase() && (!deptVal || e.deptCode===deptVal));
+          if(emp){
+            if(nameVal) emp.name = nameVal;
+            if(idVal) emp.empId = idVal;
+            if(row.Designation!==undefined) emp.designation = String(row.Designation||'');
+            if(deptVal) emp.deptCode = deptVal;
+            if(row.Status) emp.status = String(row.Status).trim().toLowerCase();
+            if(row.Join_Date!==undefined) emp.joinDate = excelValueToISODate(row.Join_Date);
+            if(row.Phone!==undefined) emp.phone = String(row.Phone||'');
+            if(row.Address!==undefined) emp.address = String(row.Address||'');
+            empUpdated++;
+          } else {
+            EMPLOYEES.push({
+              id:uid(), name:nameVal||idVal, empId:idVal,
+              designation:String(row.Designation||''), deptCode:deptVal||(DEPTS[0]&&DEPTS[0].code)||'',
+              status:String(row.Status||'active').trim().toLowerCase(),
+              joinDate:excelValueToISODate(row.Join_Date), phone:String(row.Phone||''), address:String(row.Address||'')
+            });
+            empAdded++;
+          }
+        });
+        saveSync(LS.employees, EMPLOYEES);
+      }
+
+      // --- Departments sheet: update matching departments, add new codes ---
+      if(wb.SheetNames.includes('Departments')){
+        const deptRows = XLSX.utils.sheet_to_json(wb.Sheets['Departments'], {raw:false});
+        deptRows.forEach(row=>{
+          const code = row.Code ? String(row.Code).trim() : '';
+          if(!code) return;
+          let d = DEPTS.find(x=>x.code===code);
+          if(d){
+            if(row.Name) d.label = String(row.Name).trim();
+            if(row.Factory) d.factory = String(row.Factory).trim();
+            if(row.Floor_Building!==undefined) d.floor = String(row.Floor_Building||'');
+            deptUpdated++;
+          } else {
+            DEPTS.push({id:uid(), code, label:String(row.Name||code), factory:String(row.Factory||FACTORIES[0]), floor:String(row.Floor_Building||'')});
+            deptAdded++;
+          }
+        });
+        saveSync(LS.depts, DEPTS);
+      }
+
+      if(!empUpdated && !empAdded && !deptUpdated && !deptAdded){
+        alert(t(
+          'এই ফাইলে "Employees" বা "Departments" শীট পাওয়া যায়নি — শুধু এই অ্যাপ থেকে এক্সপোর্ট করা Excel ফাইল ইমপোর্ট করা যাবে',
+          'No "Employees" or "Departments" sheet found in this file — only Excel files exported from this app can be imported',
+          '未找到"Employees"或"Departments"工作表——只能导入由本应用导出的Excel文件'
+        ));
         return;
       }
-      const sheet = wb.Sheets['_RawData'];
-      const rows = XLSX.utils.sheet_to_json(sheet, {header:1});
-      const rawJson = rows[1] && rows[1][0];
-      const data = JSON.parse(rawJson);
-      if(data.depts) { DEPTS = data.depts; saveSync(LS.depts, DEPTS); }
-      if(data.employees) { EMPLOYEES = data.employees; saveSync(LS.employees, EMPLOYEES); }
-      if(data.entries) { ENTRIES = data.entries; saveSync(LS.entries, ENTRIES); }
-      if(data.kpiMaster) { KPI_MASTER = data.kpiMaster; saveSync(LS.kpiMaster, KPI_MASTER); }
-      if(data.dataCats) { DATA_CATS = data.dataCats; saveSync(LS.dataCatMaster, DATA_CATS); }
-      if(data.events) { EVENTS = data.events; saveSync(LS.events, EVENTS); }
-      if(data.tasks) { TASKS = data.tasks; saveSync(LS.tasks, TASKS); }
-      if(data.policies) { POLICIES = data.policies; saveSync(LS.policies, POLICIES); }
-      if(data.punishments) { PUNISHMENTS = data.punishments; saveSync(LS.punishments, PUNISHMENTS); }
-      toast('✓ Excel '+t('ইমপোর্ট সম্পন্ন হয়েছে', 'import complete', '导入完成'));
-      showView('dashboard');
+      toast('✓ '+t('আপডেট হয়েছে','Updated','已更新')+`: ${empUpdated} ${t('এমপ্লয়ি','employees','名员工')}, ${empAdded} ${t('নতুন','new','新增')}, ${deptUpdated} ${t('ডিপার্টমেন্ট','departments','个部门')}`);
+      showView('employees');
     }catch(err){
       alert(t('Excel ফাইল পড়তে সমস্যা হয়েছে: ', 'Could not read Excel file: ', '无法读取Excel文件：')+err.message);
     }
@@ -2750,10 +2820,11 @@ document.getElementById('exportExcelBtn').addEventListener('click', exportToExce
 document.getElementById('importExcelBtnLabel').addEventListener('click', ()=> document.getElementById('importExcelFile').click());
 document.getElementById('importExcelFile').addEventListener('change', e=>{
   const file = e.target.files[0]; if(!file) return;
-  if(!doubleConfirm(
-    t('এই ফাইল ইমপোর্ট করলে বর্তমান সব ডাটা ওভাররাইট হবে — নিশ্চিত?','Importing this file will overwrite all current data — are you sure?','导入此文件将覆盖当前所有数据——确定吗？'),
-    t('আবার নিশ্চিত করুন — এটি ফিরিয়ে আনা যাবে না।','Please confirm again — this cannot be undone.','请再次确认——此操作无法撤销。')
-  )){ e.target.value=''; return; }
+  if(!confirm(t(
+    'এই ফাইলের "Employees" ও "Departments" শীট থেকে মিলে যাওয়া রেকর্ড আপডেট হবে (এবং নতুন কোড/আইডি থাকলে যোগ হবে)। বাকি শীট (Daily Summary, Events, Tasks, Policies ইত্যাদি) থেকে কিছু আপডেট হয় না। এগিয়ে যাবেন?',
+    'Matching records in the "Employees" and "Departments" sheets will be updated (new IDs/codes will be added). Other sheets (Daily Summary, Events, Tasks, Policies, etc.) are not applied. Proceed?',
+    '将根据"Employees"和"Departments"工作表更新匹配的记录（新ID/代码将被添加）。其他工作表（Daily Summary、Events、Tasks、Policies等）不会被应用。是否继续？'
+  ))){ e.target.value=''; return; }
   importFromExcel(file);
 });
 
