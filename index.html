@@ -125,6 +125,15 @@ button,select,input,textarea{font-family:inherit;}
 .field input:focus,.field select:focus,textarea:focus{outline:2px solid var(--amber);outline-offset:0;}
 
 table{width:100%;border-collapse:collapse;font-size:13.5px;}
+#deptTable{table-layout:fixed;}
+#empTable{table-layout:fixed;}
+#deptTable td, #deptTable th, #empTable td, #empTable th{overflow:hidden;text-overflow:ellipsis;white-space:nowrap;}
+.drag-handle{cursor:grab;text-align:center !important;color:var(--ink-soft);font-size:15px;}
+.dept-row.dragging{opacity:.4;}
+.dept-row.drag-over{outline:2px dashed var(--amber);outline-offset:-2px;}
+.reorder-btns{white-space:nowrap;}
+.reorder-btns .icon-btn{font-size:11px;padding:2px 5px;}
+.reorder-btns .icon-btn:disabled{opacity:.25;cursor:not-allowed;}
 th{
   background:#eef2f0;color:var(--navy);text-align:right;padding:9px 8px;
   font-size:12.5px;border-bottom:2px solid var(--line);white-space:nowrap;
@@ -2109,20 +2118,38 @@ function renderDeptTable(){
     let o=0,l=0;
     deptEmps.forEach(e=>{ if(classifyOfficerLabour(e.designation)==='officer') o++; else l++; });
     return `
-    <tr data-i="${i}">
+    <tr data-i="${i}" draggable="true" class="dept-row">
+      <td class="mono drag-handle" title="${t('টেনে সাজান','Drag to reorder','拖动排序')}">⠿</td>
+      <td class="mono">${i+1}</td>
       <td class="mono">${d.code}</td>
       <td class="mono">${o}</td>
       <td class="mono">${l}</td>
       <td class="mono"><b>${o+l}</b></td>
       <td><input class="cell" type="text" data-field="label" value="${d.label||''}" style="text-align:right;"></td>
-      <td><select class="cell" data-field="factory" style="width:100px;">
+      <td><select class="cell" data-field="factory">
         ${FACTORIES.map(f=>`<option value="${f}" ${d.factory===f?'selected':''}>${f}</option>`).join('')}
       </select></td>
+      <td class="reorder-btns">
+        <button class="icon-btn" data-move-up="${i}" ${i===0?'disabled':''} title="${t('উপরে সরান','Move up','上移')}">▲</button>
+        <button class="icon-btn" data-move-down="${i}" ${i===DEPTS.length-1?'disabled':''} title="${t('নিচে সরান','Move down','下移')}">▼</button>
+      </td>
       <td><button class="icon-btn" data-del="${i}">✕</button></td>
     </tr>`;
   }).join('');
   document.getElementById('deptTable').innerHTML = `
-    <thead><tr><th>${t('কোড', 'Code', '代码')}</th><th>${t('অফিসার', 'Officer', '职员')}</th><th>${t('লেবার', 'Labour', '劳工')}</th><th>${t('মোট', 'Total', '总计')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('ফ্যাক্টরি', 'Factory', '工厂')}</th><th></th></tr></thead><tbody>${rows}</tbody>`;
+    <thead><tr>
+      <th style="width:34px;"></th>
+      <th style="width:44px;">${t('ক্রমিক', 'No.', '序号')}</th>
+      <th style="width:12%;">${t('কোড', 'Code', '代码')}</th>
+      <th style="width:9%;">${t('অফিসার', 'Officer', '职员')}</th>
+      <th style="width:9%;">${t('লেবার', 'Labour', '劳工')}</th>
+      <th style="width:8%;">${t('মোট', 'Total', '总计')}</th>
+      <th>${t('নাম', 'Name', '姓名')}</th>
+      <th style="width:100px;">${t('ফ্যাক্টরি', 'Factory', '工厂')}</th>
+      <th style="width:76px;">${t('সাজান','Reorder','排序')}</th>
+      <th style="width:34px;"></th>
+    </tr></thead><tbody>${rows}</tbody>`;
+
   document.querySelectorAll('#deptTable input.cell, #deptTable select.cell').forEach(inp=>{
     inp.addEventListener('input', e=>{
       if(!requireAdminUnlocked()) { renderDeptTable(); return; }
@@ -2136,6 +2163,42 @@ function renderDeptTable(){
       if(!requireAdminUnlocked()) return;
       if(!confirm('এই ডিপার্টমেন্ট মুছে ফেলবেন? / Delete this department?')) return;
       DEPTS.splice(Number(e.target.dataset.del),1); saveSync(LS.depts, DEPTS); renderDeptTable();
+    });
+  });
+
+  function moveDept(from, to){
+    if(!requireAdminUnlocked()) return;
+    if(to<0 || to>=DEPTS.length) return;
+    const [moved] = DEPTS.splice(from,1);
+    DEPTS.splice(to,0,moved);
+    saveSync(LS.depts, DEPTS);
+    renderDeptTable();
+  }
+  document.querySelectorAll('#deptTable [data-move-up]').forEach(b=>{
+    b.addEventListener('click', e=> moveDept(Number(e.target.dataset.moveUp), Number(e.target.dataset.moveUp)-1));
+  });
+  document.querySelectorAll('#deptTable [data-move-down]').forEach(b=>{
+    b.addEventListener('click', e=> moveDept(Number(e.target.dataset.moveDown), Number(e.target.dataset.moveDown)+1));
+  });
+
+  // desktop drag-and-drop reorder (mouse); arrow buttons above cover touch/mobile
+  let dragSrcIndex = null;
+  document.querySelectorAll('#deptTable tr.dept-row').forEach(tr=>{
+    tr.addEventListener('dragstart', e=>{
+      dragSrcIndex = Number(tr.dataset.i);
+      e.dataTransfer.effectAllowed = 'move';
+      tr.classList.add('dragging');
+    });
+    tr.addEventListener('dragend', ()=> tr.classList.remove('dragging'));
+    tr.addEventListener('dragover', e=>{ e.preventDefault(); tr.classList.add('drag-over'); });
+    tr.addEventListener('dragleave', ()=> tr.classList.remove('drag-over'));
+    tr.addEventListener('drop', e=>{
+      e.preventDefault();
+      tr.classList.remove('drag-over');
+      const targetIndex = Number(tr.dataset.i);
+      if(dragSrcIndex===null || dragSrcIndex===targetIndex) return;
+      moveDept(dragSrcIndex, targetIndex);
+      dragSrcIndex = null;
     });
   });
 }
@@ -2179,7 +2242,15 @@ function renderEmpTable(){
       <td><button class="icon-btn" data-del="${e.id}">✕</button></td>
     </tr>`).join('');
   document.getElementById('empTable').innerHTML = `
-    <thead><tr><th>${t('ক্রমিক', 'No.', '序号')}</th><th>${t('নাম', 'Name', '姓名')}</th><th>${t('আইডি', 'ID', '工号')}</th><th>${t('পদবি', 'Designation', '职位')}</th><th>${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th><th>${t('স্ট্যাটাস','Status','状态')}</th><th></th></tr></thead>
+    <thead><tr>
+      <th style="width:44px;">${t('ক্রমিক', 'No.', '序号')}</th>
+      <th>${t('নাম', 'Name', '姓名')}</th>
+      <th style="width:80px;">${t('আইডি', 'ID', '工号')}</th>
+      <th style="width:22%;">${t('পদবি', 'Designation', '职位')}</th>
+      <th style="width:110px;">${t('ডিপার্টমেন্ট', 'Dept', '部门')}</th>
+      <th style="width:100px;">${t('স্ট্যাটাস','Status','状态')}</th>
+      <th style="width:34px;"></th>
+    </tr></thead>
     <tbody>${rows || '<tr><td colspan="7" style="text-align:center;color:#999;">কোনো এমপ্লয়ি নেই / No employees</td></tr>'}</tbody>`;
   document.querySelectorAll('#empTable input.cell, #empTable select.cell').forEach(inp=>{
     inp.addEventListener('input', e=>{
