@@ -134,6 +134,51 @@ table{width:100%;border-collapse:collapse;font-size:13.5px;}
 .reorder-btns{white-space:nowrap;}
 .reorder-btns .icon-btn{font-size:11px;padding:2px 5px;}
 .reorder-btns .icon-btn:disabled{opacity:.25;cursor:not-allowed;}
+
+/* ---------- to-do list ---------- */
+.todo-item{
+  display:flex;align-items:center;gap:10px;padding:9px 4px;border-bottom:1px solid var(--line);
+}
+.todo-item:last-child{border-bottom:none;}
+.todo-check{width:17px;height:17px;flex-shrink:0;cursor:pointer;accent-color:var(--teal);}
+.todo-text{
+  flex:1;border:none;background:transparent;font-size:14px;padding:4px 6px;border-radius:5px;text-align:left;
+}
+.todo-text:hover{background:#f6f7f5;}
+.todo-text:focus{background:#fff;outline:2px solid var(--amber);outline-offset:0;}
+.todo-item.done .todo-text{color:var(--ink-soft);text-decoration:line-through;}
+
+/* ---------- resizable table columns (Department / Employee master) ---------- */
+.th-resizer{
+  position:absolute;top:0;right:0;width:6px;height:100%;cursor:col-resize;
+  background:transparent;z-index:2;
+}
+.th-resizer:hover, .th-resizer.resizing{background:var(--amber);opacity:.6;}
+
+/* ---------- boot loading animation (warehouse scene) ---------- */
+.boot-loader{
+  position:fixed;inset:0;z-index:9999;background:var(--navy);
+  display:flex;flex-direction:column;align-items:center;justify-content:center;gap:18px;
+  transition:opacity .5s ease;padding:20px;
+}
+.boot-loader.fade-out{opacity:0;pointer-events:none;}
+.boot-loader-text{
+  color:#c7d8e2;font-size:13.5px;letter-spacing:.2px;text-align:center;max-width:320px;
+}
+.boot-forklift{ animation: bootForkliftDrive 3.2s ease-in-out infinite; transform-box: fill-box; }
+@keyframes bootForkliftDrive{
+  0%{ transform:translateX(0); }
+  45%{ transform:translateX(230px); }
+  52%{ transform:translateX(230px); }
+  97%{ transform:translateX(0); }
+  100%{ transform:translateX(0); }
+}
+.boot-worker{ animation: bootWorkerBounce .6s ease-in-out infinite alternate; transform-box: fill-box; transform-origin: center; }
+.boot-worker.w2{ animation-delay:.3s; }
+@keyframes bootWorkerBounce{
+  from{ transform:translateY(0); }
+  to{ transform:translateY(-4px); }
+}
 th{
   background:#eef2f0;color:var(--navy);text-align:right;padding:9px 8px;
   font-size:12.5px;border-bottom:2px solid var(--line);white-space:nowrap;
@@ -289,7 +334,7 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
   body{background:#fff;}
   .sidebar, .mobile-topbar, .drawer-backdrop, .toolbar, .footer-actions,
   .modal-backdrop, .toast, #entryPrintBtn, #histPrintBtn, #monthPrintBtn,
-  .nav, .icon-btn, button{ display:none !important; }
+  .nav, .icon-btn, button, .boot-loader{ display:none !important; }
   .app{display:block;}
   .main{padding:0;}
   #printHeader{
@@ -306,6 +351,40 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
 </style>
 </head>
 <body>
+
+<div class="boot-loader" id="bootLoader">
+  <svg viewBox="0 0 480 200" width="300" xmlns="http://www.w3.org/2000/svg">
+    <line x1="0" y1="165" x2="480" y2="165" stroke="#2c4a63" stroke-width="3"/>
+    <g>
+      <rect x="368" y="70" width="100" height="95" rx="4" fill="#1d4e6b"/>
+      <rect x="376" y="80" width="84" height="8" fill="#2f7db0"/>
+      <rect x="376" y="96" width="84" height="8" fill="#2f7db0"/>
+      <rect x="376" y="112" width="84" height="8" fill="#2f7db0"/>
+      <rect x="403" y="130" width="30" height="35" fill="#0f2540"/>
+    </g>
+    <g class="boot-worker w1">
+      <circle cx="338" cy="140" r="7" fill="#f2a63a"/>
+      <rect x="332" y="147" width="12" height="18" rx="3" fill="#e8ecec"/>
+    </g>
+    <g class="boot-worker w2">
+      <circle cx="358" cy="142" r="7" fill="#f2a63a"/>
+      <rect x="352" y="149" width="12" height="16" rx="3" fill="#e8ecec"/>
+    </g>
+    <g class="boot-forklift">
+      <rect x="55" y="120" width="30" height="6" fill="#c9821e"/>
+      <rect x="60" y="95" width="22" height="22" fill="#f2a63a" stroke="#0f2540" stroke-width="1.5"/>
+      <rect x="83" y="60" width="4" height="70" fill="#5b6b73"/>
+      <rect x="95" y="60" width="4" height="70" fill="#5b6b73"/>
+      <rect x="35" y="105" width="65" height="35" rx="4" fill="#f2a63a"/>
+      <rect x="40" y="80" width="35" height="30" rx="3" fill="#173a5e"/>
+      <circle cx="50" cy="145" r="12" fill="#16232e"/>
+      <circle cx="90" cy="145" r="12" fill="#16232e"/>
+      <circle cx="50" cy="145" r="5" fill="#5b6b73"/>
+      <circle cx="90" cy="145" r="5" fill="#5b6b73"/>
+    </g>
+  </svg>
+  <div class="boot-loader-text" data-bn="লোড হচ্ছে... ফরকলিফট মালামাল আনছে, লেবাররা কন্টেইনার আনলোড করছে" data-en="Loading... forklift bringing the goods, workers unloading the container" data-zh="正在加载...叉车正在运货，工人正在卸货">লোড হচ্ছে... ফরকলিফট মালামাল আনছে, লেবাররা কন্টেইনার আনলোড করছে</div>
+</div>
 
 <div class="mobile-topbar">
   <span class="mt-title" data-bn="ডেইলি ওয়ার্ক রিপোর্ট ও কেপিআই" data-en="Daily Work Report &amp; KPI" data-zh="日常工作报告与KPI">ডেইলি ওয়ার্ক রিপোর্ট ও কেপিআই</span>
@@ -551,6 +630,7 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
         <button class="pill" data-tab="tasks"><span data-bn="ডেইলি টাস্ক ও দায়িত্ব" data-en="Daily Tasks &amp; Responsibility" data-zh="每日任务与职责">ডেইলি টাস্ক ও দায়িত্ব</span></button>
         <button class="pill" data-tab="policies"><span data-bn="পলিসি ও নিয়মনীতি" data-en="Policies &amp; Rules" data-zh="政策与规章">পলিসি ও নিয়মনীতি</span></button>
         <button class="pill" data-tab="punishments"><span data-bn="পানিশমেন্ট / ওয়ার্নিং লেটার" data-en="Punishment / Warning Letters" data-zh="处罚/警告信">পানিশমেন্ট / ওয়ার্নিং লেটার</span></button>
+        <button class="pill" data-tab="todos"><span data-bn="টু-ডু লিস্ট" data-en="To-Do List" data-zh="待办事项">টু-ডু লিস্ট</span></button>
       </div>
 
       <!-- EVENTS TAB -->
@@ -604,6 +684,18 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
             <button class="btn btn-amber btn-sm" id="addPunishBtn">+ <span data-bn="নতুন এন্ট্রি যোগ করুন" data-en="Add Entry" data-zh="添加记录">নতুন এন্ট্রি যোগ করুন</span></button>
           </div>
           <div class="tbl-wrap"><table id="punishTable"></table></div>
+        </div>
+      </div>
+
+      <!-- TO-DO LIST TAB -->
+      <div id="notesTab-todos" style="display:none;">
+        <div class="card">
+          <div class="toolbar">
+            <input type="text" id="todoNewInput" data-bn="নতুন আইটেম লিখে Enter চাপুন..." data-en="Type a new item and press Enter..." data-zh="输入新事项并按回车..." data-ph="1" placeholder="নতুন আইটেম লিখে Enter চাপুন..." style="flex:1;min-width:200px;padding:9px 12px;border:1px solid var(--line);border-radius:7px;font-size:14px;">
+            <button class="btn btn-amber btn-sm" id="addTodoBtn">+ <span data-bn="যোগ করুন" data-en="Add" data-zh="添加">যোগ করুন</span></button>
+            <button class="btn btn-ghost btn-sm" id="clearDoneTodoBtn"><span data-bn="সম্পন্নগুলো মুছুন" data-en="Clear done" data-zh="清除已完成">সম্পন্নগুলো মুছুন</span></button>
+          </div>
+          <div id="todoListWrap"></div>
         </div>
       </div>
     </div>
@@ -719,7 +811,8 @@ a.linklike{color:var(--steel);cursor:pointer;text-decoration:underline;font-size
 const LS = {
   depts:'ewr_depts', employees:'ewr_employees', entries:'ewr_entries',
   kpiMaster:'ewr_kpi_master', dataCatMaster:'ewr_data_cat_master',
-  events:'ewr_events', tasks:'ewr_tasks', policies:'ewr_policies', punishments:'ewr_punishments'
+  events:'ewr_events', tasks:'ewr_tasks', policies:'ewr_policies', punishments:'ewr_punishments',
+  todos:'ewr_todos'
 };
 
 function todayStr(){ const d=new Date(); return d.toISOString().slice(0,10); }
@@ -733,7 +826,8 @@ const FB_CONFIG_KEY = 'ewr_firebase_config';
 const FB_PATHS = {
   [LS.depts]:'depts', [LS.employees]:'employees', [LS.entries]:'entries',
   [LS.kpiMaster]:'kpiMaster', [LS.dataCatMaster]:'dataCats',
-  [LS.events]:'events', [LS.tasks]:'tasks', [LS.policies]:'policies', [LS.punishments]:'punishments'
+  [LS.events]:'events', [LS.tasks]:'tasks', [LS.policies]:'policies', [LS.punishments]:'punishments',
+  [LS.todos]:'todos'
 };
 let fbApp = null, fbDb = null, fbReady = false;
 let firebaseAuthActive = false; // true once we've started using real login (vs local-only mode)
@@ -863,6 +957,7 @@ function applyRemoteUpdate(lsKey, val){
   else if(lsKey===LS.tasks) TASKS = val;
   else if(lsKey===LS.policies) POLICIES = val;
   else if(lsKey===LS.punishments) PUNISHMENTS = val;
+  else if(lsKey===LS.todos) TODOS = val;
   // don't yank the entry form out from under someone mid-edit
   const active = document.querySelector('.nav button.active');
   if(active && active.dataset.view !== 'entry'){
@@ -1238,6 +1333,7 @@ function initStorage(){
   if(!localStorage.getItem(LS.tasks)) saveSync(LS.tasks, []);
   if(!localStorage.getItem(LS.policies)) saveSync(LS.policies, DEFAULT_POLICIES.map(p=>({id:uid(), ...p, updatedAt:todayStr()})));
   if(!localStorage.getItem(LS.punishments)) saveSync(LS.punishments, []);
+  if(!localStorage.getItem(LS.todos)) saveSync(LS.todos, []);
 
   // Migration: if this browser already had older master data saved (from a
   // previous version of this app), merge in any new departments/employees
@@ -1287,6 +1383,7 @@ let EVENTS = load(LS.events, []);
 let TASKS = load(LS.tasks, []);
 let POLICIES = load(LS.policies, []);
 let PUNISHMENTS = load(LS.punishments, []);
+let TODOS = load(LS.todos, []);
 
 function entryKey(date, deptCode){ return date+'__'+deptCode; }
 function deptByCode(code){ return DEPTS.find(d=>d.code===code); }
@@ -2112,6 +2209,40 @@ function renderEmployeesView(){
   filt.innerHTML = '<option value="">সব ডিপার্টমেন্ট</option>' + DEPTS.map(d=>`<option value="${d.code}">${d.code}</option>`).join('');
   renderEmpTable();
 }
+// Lets people drag a column's right edge to manually resize it (desktop
+// mouse only). Re-run after every render since innerHTML rebuilds the table.
+function makeColumnsResizable(tableId){
+  const table = document.getElementById(tableId);
+  if(!table) return;
+  const ths = table.querySelectorAll('thead th');
+  ths.forEach((th, idx)=>{
+    if(idx === ths.length-1) return; // skip the last (action) column
+    th.style.position = 'relative';
+    const resizer = document.createElement('div');
+    resizer.className = 'th-resizer';
+    th.appendChild(resizer);
+    resizer.addEventListener('mousedown', e=>{
+      e.preventDefault();
+      e.stopPropagation();
+      const startX = e.pageX;
+      const startWidth = th.offsetWidth;
+      document.body.style.cursor = 'col-resize';
+      resizer.classList.add('resizing');
+      function onMove(ev){
+        th.style.width = Math.max(30, startWidth + (ev.pageX - startX)) + 'px';
+      }
+      function onUp(){
+        document.removeEventListener('mousemove', onMove);
+        document.removeEventListener('mouseup', onUp);
+        document.body.style.cursor = '';
+        resizer.classList.remove('resizing');
+      }
+      document.addEventListener('mousemove', onMove);
+      document.addEventListener('mouseup', onUp);
+    });
+  });
+}
+
 function renderDeptTable(){
   const rows = DEPTS.map((d,i)=>{
     const deptEmps = EMPLOYEES.filter(e=>e.deptCode===d.code);
@@ -2203,6 +2334,7 @@ function renderDeptTable(){
       dragSrcIndex = null;
     });
   });
+  makeColumnsResizable('deptTable');
 }
 document.getElementById('addDeptBtn').addEventListener('click', ()=>{
   if(!requireAdminUnlocked()) return;
@@ -2277,6 +2409,7 @@ function renderEmpTable(){
       saveSync(LS.employees, EMPLOYEES); renderEmpTable();
     });
   });
+  makeColumnsResizable('empTable');
 }
 document.getElementById('empDeptFilter').addEventListener('change', renderEmpTable);
 document.getElementById('empSearchBox').addEventListener('input', renderEmpTable);
@@ -2307,13 +2440,14 @@ function renderNotesView(){
   document.querySelectorAll('#notesTabs .pill').forEach(p=>{
     p.classList.toggle('active', p.dataset.tab===(window.__notesActiveTab||'events'));
   });
-  ['events','tasks','policies','punishments'].forEach(tab=>{
+  ['events','tasks','policies','punishments','todos'].forEach(tab=>{
     document.getElementById('notesTab-'+tab).style.display = (tab===(window.__notesActiveTab||'events'))?'block':'none';
   });
   renderEventsTable();
   renderTasksTable();
   renderPoliciesList();
   renderPunishTables();
+  renderTodoList();
 }
 document.getElementById('notesTabs').addEventListener('click', e=>{
   const btn = e.target.closest('.pill'); if(!btn) return;
@@ -2347,7 +2481,7 @@ function renderEventsTable(){
         ${DEPTS.map(d=>`<option value="${d.code}" ${ev.department===d.code?'selected':''}>${d.code}</option>`).join('')}
       </select></td>
       <td><input class="cell" type="text" data-field="title" value="${(ev.title||'').replace(/"/g,'&quot;')}" style="width:160px;text-align:right;"></td>
-      <td><textarea class="cell" data-field="description" rows="2" style="width:220px;text-align:right;resize:vertical;">${ev.description||''}</textarea></td>
+      <td><textarea class="cell" data-field="description" rows="2" style="width:220px;text-align:left;resize:vertical;">${ev.description||''}</textarea></td>
       <td><select class="cell" data-field="status" style="width:100px;">
         <option value="open" ${ev.status==='open'?'selected':''}>${t('চলমান', 'Open', '未处理')}</option>
         <option value="closed" ${ev.status==='closed'?'selected':''}>${t('সমাধান হয়েছে', 'Closed', '已处理')}</option>
@@ -2478,7 +2612,7 @@ function renderPoliciesList(){
         </div>
       </div>
       <label class="small">${t('বিবরণ', 'Content', '内容')}</label>
-      <textarea class="cell policy-field" data-field="content" rows="3" style="width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 10px;text-align:center;resize:vertical;">${p.content||''}</textarea>
+      <textarea class="cell policy-field" data-field="content" rows="3" style="width:100%;border:1px solid var(--line);border-radius:7px;padding:8px 10px;text-align:left;resize:vertical;">${p.content||''}</textarea>
       <div class="small" style="margin-top:6px;">${t('সর্বশেষ আপডেট', 'Last updated', '最后更新')}: ${p.updatedAt||''}</div>
     </div>`).join('') || `<div class="empty">${t('কোনো পলিসি নেই', 'No policies yet', '暂无政策')}</div>`;
 
@@ -2557,7 +2691,7 @@ function renderPunishTable(){
       <td><select class="cell" data-field="empId" style="width:180px;">
         ${activeEmps.map(e=>`<option value="${e.id}" ${p.empId===e.id?'selected':''}>${e.name}${e.empId?' ('+e.empId+')':''}</option>`).join('')}
       </select></td>
-      <td><input class="cell" type="text" data-field="reason" value="${(p.reason||'').replace(/"/g,'&quot;')}" style="width:220px;text-align:right;"></td>
+      <td><input class="cell" type="text" data-field="reason" value="${(p.reason||'').replace(/"/g,'&quot;')}" style="width:220px;text-align:left;"></td>
       <td><input class="cell" type="number" min="1" data-field="count" value="${p.count||1}" style="width:70px;"></td>
       <td><button class="icon-btn" data-del="${p.id}">✕</button></td>
     </tr>`).join('');
@@ -2593,6 +2727,64 @@ document.getElementById('addPunishBtn').addEventListener('click', ()=>{
   PUNISHMENTS.unshift({id:uid(), date:todayStr(), empId:EMPLOYEES[0].id, reason:'', count:1});
   saveSync(LS.punishments, PUNISHMENTS);
   renderPunishTables();
+});
+
+/* ---------------- TO-DO LIST ---------------- */
+function renderTodoList(){
+  const wrap = document.getElementById('todoListWrap');
+  if(!TODOS.length){
+    wrap.innerHTML = `<div class="empty">${t('কোনো আইটেম নেই — উপরে লিখে যোগ করুন','No items yet — add one above','暂无事项——请在上方添加')}</div>`;
+    return;
+  }
+  wrap.innerHTML = TODOS.map((td,i)=>`
+    <div class="todo-item ${td.done?'done':''}" data-i="${i}">
+      <input type="checkbox" class="todo-check" ${td.done?'checked':''}>
+      <input type="text" class="todo-text" value="${(td.text||'').replace(/"/g,'&quot;')}">
+      <button class="icon-btn" data-del="${i}">✕</button>
+    </div>`).join('');
+
+  wrap.querySelectorAll('.todo-check').forEach(cb=>{
+    cb.addEventListener('change', e=>{
+      const i = Number(e.target.closest('.todo-item').dataset.i);
+      TODOS[i].done = e.target.checked;
+      saveSync(LS.todos, TODOS);
+      renderTodoList();
+    });
+  });
+  wrap.querySelectorAll('.todo-text').forEach(inp=>{
+    inp.addEventListener('input', e=>{
+      const i = Number(e.target.closest('.todo-item').dataset.i);
+      TODOS[i].text = e.target.value;
+      saveSync(LS.todos, TODOS);
+    });
+  });
+  wrap.querySelectorAll('[data-del]').forEach(b=>{
+    b.addEventListener('click', e=>{
+      TODOS.splice(Number(e.target.dataset.del),1);
+      saveSync(LS.todos, TODOS);
+      renderTodoList();
+    });
+  });
+}
+function addTodoItem(){
+  const inp = document.getElementById('todoNewInput');
+  const text = inp.value.trim();
+  if(!text) return;
+  TODOS.push({id:uid(), text, done:false, createdAt:todayStr()});
+  saveSync(LS.todos, TODOS);
+  inp.value = '';
+  renderTodoList();
+}
+document.getElementById('addTodoBtn').addEventListener('click', addTodoItem);
+document.getElementById('todoNewInput').addEventListener('keydown', e=>{
+  if(e.key==='Enter'){ e.preventDefault(); addTodoItem(); }
+});
+document.getElementById('clearDoneTodoBtn').addEventListener('click', ()=>{
+  if(!TODOS.some(td=>td.done)) return;
+  if(!confirm(t('সম্পন্ন হওয়া সবগুলো মুছে ফেলবেন?','Delete all completed items?','删除所有已完成的事项？'))) return;
+  TODOS = TODOS.filter(td=>!td.done);
+  saveSync(LS.todos, TODOS);
+  renderTodoList();
 });
 
 function renderSettings(){
@@ -2637,7 +2829,7 @@ document.getElementById('addKpiMasterBtn').addEventListener('click', ()=>{
 
 document.getElementById('exportBtn').addEventListener('click', ()=>{
   const data = {depts:DEPTS, employees:EMPLOYEES, entries:ENTRIES, kpiMaster:KPI_MASTER, dataCats:DATA_CATS,
-    events:EVENTS, tasks:TASKS, policies:POLICIES, punishments:PUNISHMENTS, exportedAt:new Date().toISOString()};
+    events:EVENTS, tasks:TASKS, policies:POLICIES, punishments:PUNISHMENTS, todos:TODOS, exportedAt:new Date().toISOString()};
   const blob = new Blob([JSON.stringify(data,null,2)], {type:'application/json'});
   const a = document.createElement('a');
   a.href = URL.createObjectURL(blob);
@@ -2665,6 +2857,7 @@ document.getElementById('importFile').addEventListener('change', e=>{
       if(data.tasks) { TASKS = data.tasks; saveSync(LS.tasks, TASKS); }
       if(data.policies) { POLICIES = data.policies; saveSync(LS.policies, POLICIES); }
       if(data.punishments) { PUNISHMENTS = data.punishments; saveSync(LS.punishments, PUNISHMENTS); }
+      if(data.todos) { TODOS = data.todos; saveSync(LS.todos, TODOS); }
       toast('✓ ইমপোর্ট সম্পন্ন হয়েছে / Import complete');
       showView('dashboard');
     }catch(err){ alert('ফাইল পড়তে সমস্যা হয়েছে / Could not read file: '+err.message); }
@@ -2872,6 +3065,15 @@ document.getElementById('wipeBtn').addEventListener('click', ()=>{
 document.getElementById('entryDate').value = todayStr();
 applyStaticLanguage();
 showView('dashboard');
+
+// hide the warehouse boot animation after a short branded moment
+setTimeout(()=>{
+  const bl = document.getElementById('bootLoader');
+  if(bl){
+    bl.classList.add('fade-out');
+    setTimeout(()=> bl.remove(), 550);
+  }
+}, 1700);
 // if this deployment will use Firebase, show the login gate immediately —
 // tryInitFirebase()'s auth check is async, so this avoids a brief flash of
 // the (locally-cached) dashboard before the login screen appears
